@@ -1,0 +1,19 @@
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+}
+
+/* Footer Styling */
+.app-footer {
+  border-top: 1px solid var(--border-glass);
+  padding: 2rem 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  background: rgba(11, 15, 25, 0.8);
+}
