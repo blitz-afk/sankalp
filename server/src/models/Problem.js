@@ -8,15 +8,24 @@ const problemSchema = new mongoose.Schema({
 
     title: {
         type: String,
-        required: true
+        required: true,
+        trim: true,
+        minlength: 5,
+        maxlength: 100
     },
 
     description: {
         type: String,
-        required: true
+        required: true,
+        trim: true,
+        minlength: 10,
+        maxlength: 100
     },
 
-    media: [String],
+    media: {
+        type: [String],
+        required: true
+    },
 
     location: {
         longitude: {
@@ -31,14 +40,19 @@ const problemSchema = new mongoose.Schema({
 
     status: {
         type: String,
-        default: "SUBMITTED"
+        enum: ["Submitted",
+            "Verified",
+            "Rejected",
+            "Duplicate",
+            "In-Progress",
+            "Resolved"
+        ],
+        default: "Submitted"
     },
-
     createdAt: {
         type: Date,
         default: Date.now
     },
-
     updatedAt: {
         type: Date,
         default: Date.now
