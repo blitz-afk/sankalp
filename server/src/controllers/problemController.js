@@ -4,7 +4,7 @@ const createProblem = async (req, res) => {
     try {
         const { title, description, media, location } = req.body;
         const problem = await Problem.create({
-            submittedBy: "test_user_123",
+            submittedBy: req.user.uid,
             title,
             description,
             media,
