@@ -1,8 +1,17 @@
 import Problem from "../models/Problem.js";
+import uploadToCloudinary from "../services/cloudinaryService.js";
 
 const createProblem = async (req, res) => {
     try {
-        const { title, description, media, location } = req.body;
+        const { title, description } = req.body;
+        const location = JSON.parse(req.body.location);
+        let media = [];
+
+
+        if (req.file) {
+            const result = await uploadToCloudinary(req.file.buffer);
+            media.push(result.secure_url);
+        }
         const problem = await Problem.create({
             submittedBy: req.user.uid,
             title,
@@ -14,6 +23,7 @@ const createProblem = async (req, res) => {
             },
             status: "Submitted"
         })
+
 
         res.status(201).json({
             success: true,
