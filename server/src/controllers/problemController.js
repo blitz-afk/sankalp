@@ -1,8 +1,11 @@
 import Problem from "../models/Problem.js";
 import uploadToCloudinary from "../services/cloudinaryService.js";
+import analyzeProblem from "../services/ai/geminiService.js";
+import createChallengeIfNeeded from "../services/challengeService.js";
 
 const createProblem = async (req, res) => {
     try {
+
         const { title, description } = req.body;
         if (!req.file) {
             return res.status(400).json({
@@ -49,6 +52,18 @@ const createProblem = async (req, res) => {
             });
         }
 
+        let aiAnalysis = null;
+        try {
+            aiAnalysis = await analyzeProblem({
+                title: req.body.title,
+                description: req.body.description,
+                imageBuffer: req.file.buffer,
+                mimeType: req.file.mimetype
+            });
+        } catch (error) {
+            console.error("AI analysis failed:", error.message);
+        }
+
         let media = [];
         const result = await uploadToCloudinary(req.file.buffer);
         media.push(result.secure_url);
@@ -62,8 +77,21 @@ const createProblem = async (req, res) => {
                 latitude: location.latitude,
                 longitude: location.longitude
             },
+            aiAnalysis: aiAnalysis,
             status: "Submitted"
         })
+        try {
+            await createChallengeIfNeeded(
+                aiAnalysis.category,
+                aiAnalysis.problemType
+            );
+        } catch (error) {
+            console.error(
+                "Challenge generation failed:",
+                error.message
+            );
+        }
+
 
 
         res.status(201).json({
