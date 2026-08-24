@@ -19,7 +19,7 @@ const problemSchema = new mongoose.Schema({
         required: true,
         trim: true,
         minlength: 10,
-        maxlength: 100
+        maxlength: 1000
     },
 
     media: {
@@ -56,6 +56,48 @@ const problemSchema = new mongoose.Schema({
     updatedAt: {
         type: Date,
         default: Date.now
+    },
+    aiAnalysis: {
+        isValid: Boolean,
+        imageMatchesReport: Boolean,
+        confidence: {
+            type: Number,
+            min: 0,
+            max: 1
+        },
+        category: {
+            type: String,
+            enum: [
+                "Road Damage",
+                "Street Lighting",
+                "Waste Management",
+                "Water Supply",
+                "Drainage",
+                "Traffic Management",
+                "Public Safety",
+                "Public Transport",
+                "Electricity",
+                "Sanitation",
+                "Other"
+            ]
+        },
+        problemType: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        severity: {
+            type: String,
+            enum: ["Low", "Medium", "High", "Critical"]
+        },
+        summary: String,
+        suggestedDepartment: String,
+        possibleAiGeneratedImage: Boolean
+    },
+    challengeId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Challenge",
+        default: null
     }
 });
 
