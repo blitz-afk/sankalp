@@ -1,5 +1,6 @@
 import University from "../models/University.js";
 import User from "../models/User.js";
+import { getRecommendedChallenges } from "../services/matchingService.js";
 
 const createUniversity = async (req, res) => {
 
@@ -164,10 +165,47 @@ const getUniversityById = async (req, res) => {
     }
 };
 
+const getMyRecommendations = async (req, res) => {
+    try {
 
+        const university = await University.findOne({
+            firebaseUid: req.user.uid
+        });
+
+        if (!university) {
+            return res.status(404).json({
+                success: false,
+                message: "University profile not found"
+            });
+        }
+
+        const recommendations = await getRecommendedChallenges(
+            university._id
+        );
+
+        res.status(200).json({
+            success: true,
+            count: recommendations.length,
+            recommendations
+        });
+
+    } catch (error) {
+
+        console.error(
+            "GET UNIVERSITY RECOMMENDATIONS ERROR:",
+            error
+        );
+
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch recommendations"
+        });
+    }
+};
 export {
     createUniversity,
     getMyUniversity,
     getAllUniversities,
-    getUniversityById
+    getUniversityById,
+    getMyRecommendations
 };
