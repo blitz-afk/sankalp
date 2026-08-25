@@ -98,7 +98,16 @@ const problemSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Challenge",
         default: null
-    }
+    },
+    governmentBodyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "GovernmentBody"
+    },
+
+    governmentOfficerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "GovernmentOfficer"
+    },
 });
 
 const Problem = mongoose.model("Problem", problemSchema);

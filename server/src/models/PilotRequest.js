@@ -1,12 +1,19 @@
 import mongoose from "mongoose";
 
-const pilotSchema = new mongoose.Schema(
+const pilotRequestSchema = new mongoose.Schema(
     {
         solutionId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Solution",
             required: true
         },
+        problemIds: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Problem",
+                required: true
+            }
+        ],
 
         industryId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -25,11 +32,19 @@ const pilotSchema = new mongoose.Schema(
             ref: "GovernmentBody",
             required: true
         },
+
         governmentOfficerId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "GovernmentOfficer",
             required: true
         },
+
+        industryInterestId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "IndustryInterest",
+            required: true
+        },
+
         title: {
             type: String,
             required: true,
@@ -46,7 +61,7 @@ const pilotSchema = new mongoose.Schema(
             maxlength: 3000
         },
 
-        location: {
+        proposedLocation: {
             city: {
                 type: String,
                 required: true,
@@ -78,9 +93,10 @@ const pilotSchema = new mongoose.Schema(
             maxlength: 5000
         },
 
-        resources: {
-            type: [String],
-            default: []
+        expectedDuration: {
+            type: String,
+            required: true,
+            trim: true
         },
 
         successCriteria: {
@@ -92,57 +108,31 @@ const pilotSchema = new mongoose.Schema(
             }
         },
 
-        startDate: {
-            type: Date,
-            required: true
-        },
-
-        endDate: {
-            type: Date,
-            required: true
-        },
-
         status: {
             type: String,
             enum: [
-                "Planned",
-                "In Progress",
-                "Completed",
-                "Cancelled",
-                "Verified",
-                "Rejected"
+                "Pending",
+                "Accepted",
+                "Rejected",
+                "Converted"
             ],
-            default: "Planned"
+            default: "Pending"
         },
 
-        results: {
+        officerRemarks: {
             type: String,
             trim: true,
-            maxlength: 5000
-        },
-        problemIds: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Problem",
-                required: true
-            }
-        ]
+            maxlength: 3000
+        }
     },
     {
         timestamps: true
     }
 );
 
-// One solution can have one pilot in the MVP
-pilotSchema.index(
-    {
-        solutionId: 1
-    },
-    {
-        unique: true
-    }
+const PilotRequest = mongoose.model(
+    "PilotRequest",
+    pilotRequestSchema
 );
 
-const Pilot = mongoose.model("Pilot", pilotSchema);
-
-export default Pilot;
+export default PilotRequest;
