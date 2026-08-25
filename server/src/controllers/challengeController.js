@@ -2,6 +2,7 @@ import Challenge from "../models/Challenge.js";
 import Problem from "../models/Problem.js";
 import generateChallenge from "./ai/challengeGenerator.js";
 
+
 const createChallengeIfNeeded = async (category) => {
 
     // Check if a challenge already exists for this category
