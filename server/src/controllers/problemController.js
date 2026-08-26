@@ -2,6 +2,7 @@ import Problem from "../models/Problem.js";
 import uploadToCloudinary from "../services/cloudinaryService.js";
 import analyzeProblem from "../services/ai/geminiService.js";
 import createChallengeIfNeeded from "../services/challengeService.js";
+import reverseGeocode from "../services/geocodingService.js";
 
 const createProblem = async (req, res) => {
     try {
@@ -51,6 +52,26 @@ const createProblem = async (req, res) => {
                 message: "Invalid latitude or longitude"
             });
         }
+        let locationDetails;
+
+        try {
+            locationDetails = await reverseGeocode(
+                location.latitude,
+                location.longitude
+            );
+        } catch (error) {
+            console.error(
+                "Reverse geocoding failed:",
+                error.message
+            );
+
+            locationDetails = {
+                address: "",
+                city: "",
+                state: "",
+                country: ""
+            };
+        }
 
         let aiAnalysis = null;
         try {
@@ -75,7 +96,15 @@ const createProblem = async (req, res) => {
             media,
             location: {
                 latitude: location.latitude,
-                longitude: location.longitude
+                longitude: location.longitude,
+                address:
+                    locationDetails.address || "",
+                city:
+                    locationDetails.city || "",
+                state:
+                    locationDetails.state || "",
+                country:
+                    locationDetails.country || ""
             },
             aiAnalysis: aiAnalysis,
             status: "Submitted"
