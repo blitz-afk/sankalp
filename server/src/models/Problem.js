@@ -28,13 +28,34 @@ const problemSchema = new mongoose.Schema({
     },
 
     location: {
+        latitude: {
+            type: Number,
+            required: true
+        },
+
         longitude: {
             type: Number,
             required: true
         },
-        latitude: {
-            type: Number,
-            required: true
+
+        address: {
+            type: String,
+            trim: true
+        },
+
+        city: {
+            type: String,
+            trim: true
+        },
+
+        state: {
+            type: String,
+            trim: true
+        },
+
+        country: {
+            type: String,
+            trim: true
         }
     },
 
