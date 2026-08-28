@@ -1,10 +1,47 @@
 import api from './api';
 
-export const getIndustryProfile = async () => (await api.get('/industry/me')).data;
-export const getIndustryRecommendations = async () => (await api.get('/industries/recommendations')).data;
-export const getUniversityProfile = async () => (await api.get('/university/my')).data;
-export const getUniversityRecommendations = async () => (await api.get('/universities/recommendations')).data;
-export const getGovernmentBody = async () => (await api.get('/government-bodies/me')).data;
-export const getGovernmentBodies = async () => (await api.get('/government-bodies')).data;
-export const getMyPilotRequests = async () => (await api.get('/pilot-requests/my')).data;
-export const getMyPilots = async () => (await api.get('/pilots/my')).data;
+const unwrap = (response) => response.data;
+
+export const getIndustryProfile = async () => unwrap(await api.get('/industry/me'));
+export const getIndustryRecommendations = async () => unwrap(await api.get('/industry/recommendations'));
+export const getUniversityProfile = async () => unwrap(await api.get('/university/my'));
+export const getUniversityRecommendations = async () => unwrap(await api.get('/university/recommendations'));
+export const getGovernmentBody = async () => unwrap(await api.get('/government-bodies/me'));
+export const getMyPilots = async () => unwrap(await api.get('/pilots/my'));
+export const startPilot = async (pilotId) => unwrap(await api.patch(`/pilots/${pilotId}/start`));
+export const completePilot = async (pilotId, results) => unwrap(await api.patch(`/pilots/${pilotId}/complete`, { results }));
+export const getMyPilotRequests = async () => unwrap(await api.get('/pilot-requests/my'));
+
+export const getRoleWorkspace = async (role) => {
+  if (role === 'Industry') {
+    const [profile, recommendations] = await Promise.allSettled([
+      getIndustryProfile(),
+      getIndustryRecommendations(),
+    ]);
+    return {
+      profile: profile.status === 'fulfilled' ? profile.value.industry || profile.value : null,
+      recommendations: recommendations.status === 'fulfilled' ? recommendations.value.recommendations || [] : [],
+    };
+  }
+  if (role === 'University') {
+    const [profile, recommendations] = await Promise.allSettled([
+      getUniversityProfile(),
+      getUniversityRecommendations(),
+    ]);
+    return {
+      profile: profile.status === 'fulfilled' ? profile.value.university || profile.value : null,
+      recommendations: recommendations.status === 'fulfilled' ? recommendations.value.recommendations || [] : [],
+    };
+  }
+  if (role === 'Admin') {
+    const [profile, pilots] = await Promise.allSettled([getGovernmentBody(), getMyPilots()]);
+    return {
+      profile: profile.status === 'fulfilled' ? profile.value.governmentBody || profile.value : null,
+      pilots: pilots.status === 'fulfilled' ? pilots.value.pilots || [] : [],
+    };
+  }
+  return { profile: null, recommendations: [], pilots: [] };
+};
+
+export const getGovernmentBodies = async () => unwrap(await api.get('/government-bodies'));
+export const getMyPilotsLegacy = getMyPilots;
