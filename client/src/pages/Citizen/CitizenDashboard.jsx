@@ -6,13 +6,12 @@ import { createProblem, getMyProblems } from '../../services/problemService';
 import { validateProblemImage } from '../../services/api';
 import { blobToBase64, getCurrentLocation, formatDate } from '../../utils/helpers';
 import { STATUS_COLORS } from '../../utils/constants';
-import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle2, MapPin, Tag, Activity, FileText, Plus, List } from 'lucide-react';
+import { Loader as Loader2, CircleAlert as AlertCircle, CircleCheck as CheckCircle2, MapPin, Tag, Activity, FileText, Plus, List, Bot, ShieldCheck, Clock3 } from 'lucide-react';
 
 export default function CitizenDashboard() {
   const [view, setView] = useState('report');
   const [problems, setProblems] = useState([]);
   const [loadingProblems, setLoadingProblems] = useState(false);
-
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [imageBlob, setImageBlob] = useState(null);
@@ -22,169 +21,15 @@ export default function CitizenDashboard() {
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(null);
 
-  const loadProblems = useCallback(async () => {
-    setLoadingProblems(true);
-    try {
-      const data = await getMyProblems();
-      setProblems(data || []);
-    } catch (err) {
-      console.error('Failed to load problems:', err);
-    } finally {
-      setLoadingProblems(false);
-    }
-  }, []);
+  const loadProblems = useCallback(async () => { setLoadingProblems(true); try { setProblems((await getMyProblems()) || []); } catch (err) { console.error('Failed to load problems:', err); } finally { setLoadingProblems(false); } }, []);
+  useEffect(() => { if (view === 'history') loadProblems(); }, [view, loadProblems]);
+  useEffect(() => { if (view !== 'report') return; setLocationStatus('loading'); getCurrentLocation().then((loc) => { setLocation(loc); setLocationStatus('success'); }).catch(() => setLocationStatus('error')); }, [view]);
+  const resetForm = () => { setTitle(''); setDescription(''); setImageBlob(null); setSubmitError(''); setSubmitSuccess(null); };
+  const chooseSuggestion = (text) => { setTitle(text); document.getElementById('report-details')?.scrollIntoView({ behavior: 'smooth' }); };
+  const handleSubmit = async (e) => { e.preventDefault(); setSubmitError(''); setSubmitSuccess(null); if (!title.trim() || title.trim().length < 5) return setSubmitError('Title must be at least 5 characters.'); if (!description.trim() || description.trim().length < 10) return setSubmitError('Description must be at least 10 characters.'); if (!imageBlob) return setSubmitError('Please capture a photo of the problem.'); setSubmitting(true); try { const base64Image = await blobToBase64(imageBlob); const analysis = await validateProblemImage({ image: base64Image, mimeType: 'image/jpeg', title: title.trim(), description: description.trim() }); const locationData = location ? { latitude: location.latitude, longitude: location.longitude, address: '', city: '', state: '', country: '' } : { latitude: 0, longitude: 0, address: '', city: '', state: '', country: '' }; await createProblem({ title: title.trim(), description: description.trim(), imageBlob, location: locationData, aiAnalysis: analysis }); setSubmitSuccess({ analysis }); resetForm(); } catch (err) { setSubmitError(err.message || 'Something went wrong. Please try again.'); } finally { setSubmitting(false); } };
 
-  useEffect(() => {
-    if (view === 'history') loadProblems();
-  }, [view, loadProblems]);
-
-  useEffect(() => {
-    if (view !== 'report') return;
-    setLocationStatus('loading');
-    getCurrentLocation()
-      .then((loc) => { setLocation(loc); setLocationStatus('success'); })
-      .catch(() => setLocationStatus('error'));
-  }, [view]);
-
-  const resetForm = () => {
-    setTitle('');
-    setDescription('');
-    setImageBlob(null);
-    setSubmitError('');
-    setSubmitSuccess(null);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitError('');
-    setSubmitSuccess(null);
-
-    if (!title.trim() || title.trim().length < 5) { setSubmitError('Title must be at least 5 characters.'); return; }
-    if (!description.trim() || description.trim().length < 10) { setSubmitError('Description must be at least 10 characters.'); return; }
-    if (!imageBlob) { setSubmitError('Please capture a photo of the problem.'); return; }
-
-    setSubmitting(true);
-    try {
-      const base64Image = await blobToBase64(imageBlob);
-      const analysis = await validateProblemImage({
-        image: base64Image, mimeType: 'image/jpeg',
-        title: title.trim(), description: description.trim(),
-      });
-
-      const locationData = location
-        ? { latitude: location.latitude, longitude: location.longitude, address: '', city: '', state: '', country: '' }
-        : { latitude: 0, longitude: 0, address: '', city: '', state: '', country: '' };
-
-      await createProblem({
-        title: title.trim(), description: description.trim(),
-        imageBlob, location: locationData, aiAnalysis: analysis,
-      });
-
-      setSubmitSuccess({ analysis });
-      resetForm();
-    } catch (err) {
-      setSubmitError(err.message || 'Something went wrong. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="dashboard">
-      <Header title="Citizen Dashboard" />
-      <div className="dashboard-tabs">
-        <button className={`tab-btn ${view === 'report' ? 'active' : ''}`} onClick={() => setView('report')}>
-          <Plus size={16} /> Report a Problem
-        </button>
-        <button className={`tab-btn ${view === 'history' ? 'active' : ''}`} onClick={() => setView('history')}>
-          <List size={16} /> My Reports
-        </button>
-      </div>
-
-      <div className="dashboard-content">
-        {view === 'report' && (
-          submitSuccess ? (
-            <div className="success-card">
-              <CheckCircle2 size={40} />
-              <h2>Problem Submitted Successfully</h2>
-              <p>Your report has been validated and submitted.</p>
-              <div className="analysis-summary">
-                <div className="analysis-row"><Tag size={16} /><span>Category:</span><strong>{submitSuccess.analysis.category}</strong></div>
-                <div className="analysis-row"><Activity size={16} /><span>Severity:</span><strong>{submitSuccess.analysis.severity}</strong></div>
-                <div className="analysis-row"><FileText size={16} /><span>Summary:</span><strong>{submitSuccess.analysis.summary}</strong></div>
-              </div>
-              <div className="success-actions">
-                <button className="btn btn-primary" onClick={resetForm}>Report Another Problem</button>
-                <button className="btn btn-outline" onClick={() => setView('history')}>View My Reports</button>
-              </div>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="problem-form">
-              <div className="form-section">
-                <h3 className="form-section-title">Photo Evidence</h3>
-                <p className="form-section-desc">Use your camera to capture a clear photo of the problem. Gallery uploads are not supported.</p>
-                <CameraCapture onCapture={setImageBlob} disabled={submitting} />
-              </div>
-              <div className="form-section">
-                <h3 className="form-section-title">Details</h3>
-                {submitError && <div className="alert alert-error"><AlertCircle size={16} /> {submitError}</div>}
-                <div className="form-field">
-                  <label>Title</label>
-                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Brief title for the problem" maxLength={100} disabled={submitting} />
-                </div>
-                <div className="form-field">
-                  <label>Description</label>
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe the problem in detail…" maxLength={1000} rows={4} disabled={submitting} />
-                </div>
-                <div className="form-field">
-                  <label>Location</label>
-                  <div className="location-status">
-                    {locationStatus === 'loading' && (<><Loader2 size={16} className="spin" /> Detecting your location…</>)}
-                    {locationStatus === 'success' && location && (<><MapPin size={16} /> {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}</>)}
-                    {locationStatus === 'error' && (<span className="text-error"><MapPin size={16} /> Could not detect location. Please enable location access.</span>)}
-                  </div>
-                </div>
-                <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={submitting || !imageBlob}>
-                  {submitting ? (<><Loader2 size={18} className="spin" /> Validating & Submitting…</>) : 'Submit Report'}
-                </button>
-              </div>
-            </form>
-          )
-        )}
-
-        {view === 'history' && (
-          loadingProblems ? (
-            <div className="loading-state"><Loader2 size={24} className="spin" /><p>Loading your reports…</p></div>
-          ) : problems.length === 0 ? (
-            <div className="empty-state">
-              <p>You haven't reported any problems yet.</p>
-              <button className="btn btn-primary" onClick={() => setView('report')}>Report a Problem</button>
-            </div>
-          ) : (
-            <div className="problem-list">
-              {problems.map((problem) => (
-                <div key={problem.id} className="problem-item">
-                  {problem.media_url && <img src={problem.media_url} alt={problem.title} className="problem-thumb" />}
-                  <div className="problem-info">
-                    <div className="problem-top-row">
-                      <h4>{problem.title}</h4>
-                      <Badge color={STATUS_COLORS[problem.status] || 'gray'}>{problem.status}</Badge>
-                    </div>
-                    <p className="problem-desc">{problem.description}</p>
-                    {problem.ai_analysis && (
-                      <div className="problem-meta">
-                        <span><Tag size={14} /> {problem.ai_analysis.category}</span>
-                        <span><Activity size={14} /> {problem.ai_analysis.severity}</span>
-                      </div>
-                    )}
-                    <span className="problem-date">{formatDate(problem.created_at)}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
-        )}
-      </div>
-    </div>
-  );
+  return <div className="dashboard"><Header title="Citizen workspace" /><div className="dashboard-tabs"><button className={`tab-btn ${view === 'report' ? 'active' : ''}`} onClick={() => setView('report')}><Plus size={16} /> New report</button><button className={`tab-btn ${view === 'history' ? 'active' : ''}`} onClick={() => setView('history')}><List size={16} /> My reports</button></div><main className="dashboard-content">
+    {view === 'report' && (submitSuccess ? <div className="success-card"><CheckCircle2 size={44} /><span className="eyebrow">Report received</span><h2>Your report is now in motion</h2><p>Our civic team can use your evidence and location to route this to the right department.</p><div className="analysis-summary"><div className="analysis-row"><Tag size={16} /><span>Category</span><strong>{submitSuccess.analysis.category}</strong></div><div className="analysis-row"><Activity size={16} /><span>Severity</span><strong>{submitSuccess.analysis.severity}</strong></div><div className="analysis-row"><FileText size={16} /><span>AI summary</span><strong>{submitSuccess.analysis.summary}</strong></div></div><div className="success-actions"><button className="btn btn-primary" onClick={resetForm}>Report another issue</button><button className="btn btn-outline" onClick={() => setView('history')}>View my reports</button></div></div> : <div className="citizen-layout"><section><span className="eyebrow">Sankalp civic assistant</span><h1 className="page-heading">Let&apos;s make your street better.</h1><p className="page-copy">Tell me what you noticed. I&apos;ll help turn it into a clear, actionable report for your local team.</p><div className="assistant-card"><div className="assistant-message"><div className="assistant-avatar"><Bot size={21} /></div><p><strong>Hi there.</strong><br />Start by taking a photo of the issue. Then add a few details so we can understand what needs attention.</p></div><div className="suggestions"><button className="suggestion" onClick={() => chooseSuggestion('Pothole or damaged road')}>Pothole or damaged road</button><button className="suggestion" onClick={() => chooseSuggestion('Streetlight not working')}>Streetlight not working</button><button className="suggestion" onClick={() => chooseSuggestion('Garbage collection issue')}>Garbage collection issue</button></div></div><form onSubmit={handleSubmit} className="problem-form"><div className="form-section"><h2 className="form-section-title">Show us what&apos;s happening</h2><p className="form-section-desc">Use your device camera to capture evidence. Gallery and file uploads are not supported.</p><CameraCapture onCapture={setImageBlob} disabled={submitting} /></div><div className="form-section" id="report-details"><h2 className="form-section-title">Add the details</h2>{submitError && <div className="alert alert-error"><AlertCircle size={16} /> {submitError}</div>}<div className="form-field"><label htmlFor="title">What should we call this?</label><input id="title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Large pothole near the bus stop" maxLength={100} disabled={submitting} /></div><div className="form-field"><label htmlFor="description">What did you notice?</label><textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Add helpful context, like when it started or who is affected…" maxLength={1000} rows={4} disabled={submitting} /></div><div className="form-field"><label>Where is it?</label><div className="location-status">{locationStatus === 'loading' && <><Loader2 size={16} className="spin" /> Detecting your location…</>}{locationStatus === 'success' && location && <><MapPin size={16} /> Location attached: {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}</>}{locationStatus === 'error' && <span className="text-error"><MapPin size={16} /> Could not detect location. Enable location access to improve routing.</span>}</div></div><button type="submit" className="btn btn-primary btn-block" disabled={submitting || !imageBlob}>{submitting ? <><Loader2 size={18} className="spin" /> Validating and submitting…</> : 'Send report to my civic team'}</button></div></form></section><aside className="side-stack"><div className="card mini-card"><ShieldCheck size={20} color="var(--brand)" /><h3>Privacy by design</h3><p>Your camera is used only to capture this report. There is no gallery upload path.</p></div><div className="card mini-card"><Clock3 size={20} color="var(--orange)" /><h3>What happens next?</h3><p>AI helps classify your report, then the right department reviews and routes it.</p></div></aside></div>)}
+    {view === 'history' && (loadingProblems ? <div className="loading-state"><Loader2 size={24} className="spin" /><p>Loading your reports…</p></div> : problems.length === 0 ? <div className="empty-state"><p>You haven&apos;t reported any problems yet.</p><button className="btn btn-primary" onClick={() => setView('report')}>Create your first report</button></div> : <div className="problem-list">{problems.map((problem) => <div key={problem.id} className="problem-item">{problem.media_url && <img src={problem.media_url} alt={problem.title} className="problem-thumb" />}<div className="problem-info"><div className="problem-top-row"><h4>{problem.title}</h4><Badge color={STATUS_COLORS[problem.status] || 'gray'}>{problem.status}</Badge></div><p className="problem-desc">{problem.description}</p>{problem.ai_analysis && <div className="problem-meta"><span><Tag size={14} /> {problem.ai_analysis.category}</span><span><Activity size={14} /> {problem.ai_analysis.severity}</span></div>}<span className="problem-date">{formatDate(problem.created_at)}</span></div></div>)}</div>)}
+  </main></div>;
 }
