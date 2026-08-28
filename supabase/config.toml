@@ -1,0 +1,2 @@
+[functions.validate-problem-image]
+verify_jwt = true
