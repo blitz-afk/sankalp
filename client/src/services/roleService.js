@@ -11,6 +11,7 @@ export const getMyPilots = async () => unwrap(await api.get('/pilots/my'));
 export const startPilot = async (pilotId) => unwrap(await api.patch(`/pilots/${pilotId}/start`));
 export const completePilot = async (pilotId, results) => unwrap(await api.patch(`/pilots/${pilotId}/complete`, { results }));
 export const getMyPilotRequests = async () => unwrap(await api.get('/pilot-requests/my'));
+export const getEvaluatorQueue = async () => unwrap(await api.get('/pilot-verifications/my'));
 
 export const getRoleWorkspace = async (role) => {
   if (role === 'Industry') {
@@ -31,6 +32,13 @@ export const getRoleWorkspace = async (role) => {
     return {
       profile: profile.status === 'fulfilled' ? profile.value.university || profile.value : null,
       recommendations: recommendations.status === 'fulfilled' ? recommendations.value.recommendations || [] : [],
+    };
+  }
+  if (role === 'Evaluator') {
+    const queue = await getEvaluatorQueue();
+    return {
+      profile: queue.evaluator || queue.profile || null,
+      recommendations: queue.evaluations || queue.pilots || queue.items || [],
     };
   }
   if (role === 'Admin') {
