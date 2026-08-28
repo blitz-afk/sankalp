@@ -4,6 +4,16 @@ import analyzeProblem from "../services/ai/geminiService.js";
 import createChallengeIfNeeded from "../services/challengeService.js";
 import reverseGeocode from "../services/geocodingService.js";
 
+export const getMyProblems = async (req, res) => {
+    try {
+        const problems = await Problem.find({ submittedBy: req.user.uid }).sort({ createdAt: -1 });
+        return res.json({ success: true, problems });
+    } catch (error) {
+        console.error("Failed to load user problems:", error.message);
+        return res.status(500).json({ success: false, message: "Failed to load problems" });
+    }
+};
+
 const createProblem = async (req, res) => {
     try {
 

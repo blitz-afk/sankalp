@@ -1,46 +1,21 @@
-import supabase from '../firebase/config';
+import api from './api';
 
-export async function createProblem({ title, description, imageBlob, location, aiAnalysis }) {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const userId = sessionData?.session?.user?.id;
-  if (!userId) throw new Error('Not authenticated');
-
-  const fileName = `${userId}/${Date.now()}.jpg`;
-  const { error: uploadError } = await supabase
-    .storage
-    .from('problem-images')
-    .upload(fileName, imageBlob, { contentType: 'image/jpeg', upsert: false });
-
-  if (uploadError) throw uploadError;
-
-  const { data: urlData } = supabase
-    .storage
-    .from('problem-images')
-    .getPublicUrl(fileName);
-
-  const { data, error } = await supabase
-    .from('problems')
-    .insert({
-      title: title.trim(),
-      description: description.trim(),
-      media_url: urlData.publicUrl,
-      location,
-      ai_analysis: aiAnalysis,
-      status: 'Submitted',
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+export async function createProblem({ title, description, imageBlob, location }) {
+  const form = new FormData();
+  form.append('title', title);
+  form.append('description', description);
+  form.append('location', JSON.stringify(location));
+  form.append('media', imageBlob, 'civic-report.jpg');
+  const { data } = await api.post('/problems', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  return data.problem || data;
 }
 
 export async function getMyProblems() {
-  const { data, error } = await supabase
-    .from('problems')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const { data } = await api.get('/problems/me');
+  return data.problems || data;
+}
 
-  if (error) throw error;
-  return data;
+export async function getProblems() {
+  const { data } = await api.get('/problems');
+  return data.problems || data;
 }
