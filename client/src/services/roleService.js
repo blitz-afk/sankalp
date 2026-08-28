@@ -12,6 +12,14 @@ export const startPilot = async (pilotId) => unwrap(await api.patch(`/pilots/${p
 export const completePilot = async (pilotId, results) => unwrap(await api.patch(`/pilots/${pilotId}/complete`, { results }));
 export const getMyPilotRequests = async () => unwrap(await api.get('/pilot-requests/my'));
 export const getEvaluatorQueue = async () => unwrap(await api.get('/pilot-verifications/my'));
+export const verifyPilot = async (pilotId, payload) => unwrap(await api.patch(`/pilot-verifications/${pilotId}`, payload));
+export const createPilotRequest = async (payload) => unwrap(await api.post('/pilot-requests', payload));
+export const getIndustryInterests = async () => unwrap(await api.get('/industry-interests/my'));
+export const getReceivedIndustryInterests = async () => unwrap(await api.get('/industry-interests/received'));
+export const acceptIndustryInterest = async (interestId) => unwrap(await api.patch(`/industry-interests/${interestId}/accept`));
+export const rejectIndustryInterest = async (interestId) => unwrap(await api.patch(`/industry-interests/${interestId}/reject`));
+export const submitPilotEvaluation = async (pilotId, payload) => unwrap(await api.post(`/pilot-evaluations/${pilotId}`, payload));
+export const getPilotEvaluation = async (pilotId) => unwrap(await api.get(`/pilot-evaluations/${pilotId}`));
 
 export const getRoleWorkspace = async (role) => {
   if (role === 'Industry') {

@@ -19,7 +19,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const message = error.response?.data?.message || error.response?.data?.error || error.message || 'Request failed';
-    return Promise.reject(new Error(message));
+      const normalizedError = new Error(message);
+    normalizedError.status = error.response?.status;
+    normalizedError.response = error.response;
+    normalizedError.code = error.code;
+    return Promise.reject(normalizedError);
   },
 );
 
