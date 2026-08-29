@@ -4,6 +4,7 @@ import RegisterPage from "./pages/Register/RegisterPage";
 import CitizenRegister from "./pages/Register/CitizenRegister";
 import LoginPage from "./pages/Login/LoginPage";
 import CitizenDashboard from "./pages/Citizen/CitizenDashboard";
+import CitizenReports from "./pages/Citizen/CitizenReports";
 
 function Placeholder({ title }) {
   return (
@@ -52,6 +53,10 @@ export default function App() {
       <Route
         path="/citizen"
         element={<CitizenDashboard />}
+      />
+      <Route
+        path="/citizen/reports"
+        element={<CitizenReports />}
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
