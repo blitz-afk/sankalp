@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { auth } from "../../firebase/config";
+import { signOut } from "firebase/auth";
 import api from "../../services/api";
 
 export default function CitizenDashboard() {
@@ -240,6 +241,17 @@ export default function CitizenDashboard() {
         );
     };
 
+    //signouttt
+    const handleSignOut = async () => {
+        try {
+            await signOut(auth);
+            window.location.href = "/login";
+        } catch (error) {
+            console.error("Sign out failed:", error);
+            setError("Failed to sign out. Please try again.");
+        }
+    };
+
     // =========================================
     // ANALYZE REPORT
     // =========================================
@@ -326,11 +338,9 @@ export default function CitizenDashboard() {
                     "Invalid preview response from server."
                 );
             }
+            const previewData = response.data.preview;
 
-            setPreview(
-                response.data.preview
-            );
-
+            setPreview(previewData);
             setStage("confirm");
         } catch (err) {
             console.error(
@@ -355,146 +365,146 @@ export default function CitizenDashboard() {
     // =========================================
 
     const confirmReport = async () => {
-    setError("");
+        setError("");
 
-    if (!image?.file) {
-        setError(
-            "Captured image is missing. Please take the photo again."
-        );
-        return;
-    }
-
-    if (!preview) {
-        setError(
-            "Report analysis is missing. Please analyze the report again."
-        );
-        return;
-    }
-
-    if (!preview.location) {
-        setError(
-            "Report location is missing. Please capture your location again."
-        );
-        return;
-    }
-
-    try {
-        setSubmitting(true);
-
-        const user = auth.currentUser;
-
-        if (!user) {
+        if (!image?.file) {
             setError(
-                "You are not authenticated. Please log in again."
+                "Captured image is missing. Please take the photo again."
             );
             return;
         }
 
-        const token = await user.getIdToken();
+        if (!preview) {
+            setError(
+                "Report analysis is missing. Please analyze the report again."
+            );
+            return;
+        }
 
-        const formData = new FormData();
+        if (!preview.location) {
+            setError(
+                "Report location is missing. Please capture your location again."
+            );
+            return;
+        }
 
-        formData.append(
-            "description",
-            description.trim()
-        );
+        try {
+            setSubmitting(true);
 
-        formData.append(
-            "location",
-            JSON.stringify({
-                latitude:
-                    preview.location.latitude,
+            const user = auth.currentUser;
 
-                longitude:
-                    preview.location.longitude,
-
-                address:
-                    preview.location.address || "",
-
-                city:
-                    preview.location.city || "",
-
-                state:
-                    preview.location.state || "",
-
-                country:
-                    preview.location.country || ""
-            })
-        );
-
-        // Send the exact AI analysis that the citizen
-        // saw on the confirmation screen.
-        formData.append(
-            "analysis",
-            JSON.stringify({
-                isValid:
-                    preview.isValid ?? true,
-
-                imageMatchesReport:
-                    preview.imageMatchesReport ?? true,
-
-                confidence:
-                    preview.confidence ?? 0,
-
-                title:
-                    preview.title || "",
-
-                category:
-                    preview.category || "Other",
-
-                problemType:
-                    preview.problemType || "",
-
-                severity:
-                    preview.severity || "Low",
-
-                summary:
-                    preview.summary || "",
-
-                suggestedDepartment:
-                    preview.suggestedDepartment || "",
-
-                possibleAiGeneratedImage:
-                    preview.possibleAiGeneratedImage ?? false
-            })
-        );
-
-        formData.append(
-            "media",
-            image.file
-        );
-
-        const response = await api.post(
-            "/problems",
-            formData,
-            {
-                headers: {
-                    Authorization:
-                        `Bearer ${token}`
-                }
+            if (!user) {
+                setError(
+                    "You are not authenticated. Please log in again."
+                );
+                return;
             }
-        );
 
-        setCreatedProblem(
-            response.data.problem
-        );
+            const token = await user.getIdToken();
 
-        setStage("submitted");
+            const formData = new FormData();
 
-    } catch (err) {
-        console.error(
-            "Problem submission failed:",
-            err
-        );
+            formData.append(
+                "description",
+                description.trim()
+            );
 
-        setError(
-            err.response?.data?.message ||
-            "Failed to submit the report. Please try again."
-        );
-    } finally {
-        setSubmitting(false);
-    }
-};
+            formData.append(
+                "location",
+                JSON.stringify({
+                    latitude:
+                        preview.location.latitude,
+
+                    longitude:
+                        preview.location.longitude,
+
+                    address:
+                        preview.location.address || "",
+
+                    city:
+                        preview.location.city || "",
+
+                    state:
+                        preview.location.state || "",
+
+                    country:
+                        preview.location.country || ""
+                })
+            );
+
+            // Send the exact AI analysis that the citizen
+            // saw on the confirmation screen.
+            formData.append(
+                "analysis",
+                JSON.stringify({
+                    isValid:
+                        preview.isValid ?? true,
+
+                    imageMatchesReport:
+                        preview.imageMatchesReport ?? true,
+
+                    confidence:
+                        preview.confidence ?? 0,
+
+                    title:
+                        preview.title || "",
+
+                    category:
+                        preview.category || "Other",
+
+                    problemType:
+                        preview.problemType || "",
+
+                    severity:
+                        preview.severity || "Low",
+
+                    summary:
+                        preview.summary || "",
+
+                    suggestedDepartment:
+                        preview.suggestedDepartment || "",
+
+                    possibleAiGeneratedImage:
+                        preview.possibleAiGeneratedImage ?? false
+                })
+            );
+
+            formData.append(
+                "media",
+                image.file
+            );
+
+            const response = await api.post(
+                "/problems",
+                formData,
+                {
+                    headers: {
+                        Authorization:
+                            `Bearer ${token}`
+                    }
+                }
+            );
+
+            setCreatedProblem(
+                response.data.problem
+            );
+
+            setStage("submitted");
+
+        } catch (err) {
+            console.error(
+                "Problem submission failed:",
+                err
+            );
+
+            setError(
+                err.response?.data?.message ||
+                "Failed to submit the report. Please try again."
+            );
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     // =========================================
     // BACK TO EDIT
@@ -859,6 +869,13 @@ export default function CitizenDashboard() {
                             <span className="text-[#13243b]/60">
                                 Citizen
                             </span>
+                            <button
+                                type="button"
+                                onClick={handleSignOut}
+                                className="text-[#13243b]/55 hover:text-[#13243b]"
+                            >
+                                Sign out
+                            </button>
 
                         </div>
 
@@ -888,6 +905,13 @@ export default function CitizenDashboard() {
                                         <FileText size={16} />
                                         My reports
                                     </Link>
+                                    <button
+                                        type="button"
+                                        onClick={handleSignOut}
+                                        className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-[#13243b]/5"
+                                    >
+                                        Sign out
+                                    </button>
 
                                 </div>
                             )}
@@ -1010,12 +1034,12 @@ export default function CitizenDashboard() {
                                             analyzing
                                         }
                                         className={`flex h-10 items-center gap-2 rounded-full border px-4 text-sm ${location &&
-                                                typeof location.latitude ===
-                                                "number"
-                                                ? "border-[#cdeef3] bg-[#e7f8fa] text-[#148aa0]"
-                                                : location?.error
-                                                    ? "border-red-200 bg-red-50 text-red-600"
-                                                    : "border-[#13243b]/10 bg-white text-[#13243b]/65 hover:border-[#13243b]/25"
+                                            typeof location.latitude ===
+                                            "number"
+                                            ? "border-[#cdeef3] bg-[#e7f8fa] text-[#148aa0]"
+                                            : location?.error
+                                                ? "border-red-200 bg-red-50 text-red-600"
+                                                : "border-[#13243b]/10 bg-white text-[#13243b]/65 hover:border-[#13243b]/25"
                                             }`}
                                     >
 
@@ -1063,13 +1087,13 @@ export default function CitizenDashboard() {
                                     }
                                     onClick={analyzeReport}
                                     className={`flex h-11 shrink-0 items-center justify-center gap-2 rounded-full px-5 text-sm font-medium ${analyzing ||
-                                            !description.trim() ||
-                                            !image?.file ||
-                                            !location ||
-                                            typeof location.latitude !==
-                                            "number"
-                                            ? "bg-[#d0d4d9] text-white"
-                                            : "bg-[#13243b] text-white hover:bg-[#1d3554]"
+                                        !description.trim() ||
+                                        !image?.file ||
+                                        !location ||
+                                        typeof location.latitude !==
+                                        "number"
+                                        ? "bg-[#d0d4d9] text-white"
+                                        : "bg-[#13243b] text-white hover:bg-[#1d3554]"
                                         }`}
                                     aria-label="Analyze problem"
                                 >
