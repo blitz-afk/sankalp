@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { auth } from "../../firebase/config";
+import { signOut } from "firebase/auth";
 import api from "../../services/api";
 
 export default function CitizenDashboard() {
@@ -240,6 +241,17 @@ export default function CitizenDashboard() {
         );
     };
 
+    //signouttt
+    const handleSignOut = async () => {
+        try {
+            await signOut(auth);
+            window.location.href = "/login";
+        } catch (error) {
+            console.error("Sign out failed:", error);
+            setError("Failed to sign out. Please try again.");
+        }
+    };
+
     // =========================================
     // ANALYZE REPORT
     // =========================================
@@ -328,20 +340,7 @@ export default function CitizenDashboard() {
             }
             const previewData = response.data.preview;
 
-            alert(
-                "ADDRESS:\n" +
-                (previewData.location?.address || "EMPTY") +
-                "\n\nCITY:\n" +
-                (previewData.location?.city || "EMPTY") +
-                "\n\nSTATE:\n" +
-                (previewData.location?.state || "EMPTY") +
-                "\n\nLAT:\n" +
-                previewData.location?.latitude +
-                "\n\nLNG:\n" +
-                previewData.location?.longitude
-            );
-
-
+            setPreview(previewData);
             setStage("confirm");
         } catch (err) {
             console.error(
@@ -870,6 +869,13 @@ export default function CitizenDashboard() {
                             <span className="text-[#13243b]/60">
                                 Citizen
                             </span>
+                            <button
+                                type="button"
+                                onClick={handleSignOut}
+                                className="text-[#13243b]/55 hover:text-[#13243b]"
+                            >
+                                Sign out
+                            </button>
 
                         </div>
 
@@ -899,6 +905,13 @@ export default function CitizenDashboard() {
                                         <FileText size={16} />
                                         My reports
                                     </Link>
+                                    <button
+                                        type="button"
+                                        onClick={handleSignOut}
+                                        className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-[#13243b]/5"
+                                    >
+                                        Sign out
+                                    </button>
 
                                 </div>
                             )}
