@@ -1,5 +1,5 @@
-import express from "express"
-import problemRoutes from "./routes/problemRoutes.js"
+import express from "express";
+import problemRoutes from "./routes/problemRoutes.js";
 import universityRoutes from "./routes/universityRoutes.js";
 import solutionRoutes from "./routes/solutionRoutes.js";
 import industryRoutes from "./routes/industryRoutes.js";
@@ -17,21 +17,39 @@ import cors from "cors";
 
 const app = express();
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://sankalp-lake-beta.vercel.app",
+];
 
 app.use(
-    cors({
-        origin: [
-            "http://localhost:5173",
-            "https://sankalp-lake-beta.vercel.app"
-        ],
-        credentials: true
-    })
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
+        return callback(null, true);
+      }
+
+      console.log("CORS blocked origin:", origin);
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+
+    credentials: true,
+
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
 );
 
-app.use(express.json())
+app.use(express.json());
 app.get("/", (req, res) => {
-    res.send("hello")
-})
+  res.send("hello");
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/problems", problemRoutes);
@@ -46,7 +64,6 @@ app.use("/api/government-officers", governmentOfficerRoutes);
 app.use("/api/pilots", pilotRoutes);
 app.use("/api/pilot-evaluations", pilotEvaluationRoutes);
 app.use("/api/pilot-verifications", pilotVerificationRoutes);
-app.use("/api/problems/analyze",problemAnalysisRoutes);
-
+app.use("/api/problems/analyze", problemAnalysisRoutes);
 
 export default app;
