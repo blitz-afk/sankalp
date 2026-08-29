@@ -1,37 +1,58 @@
 const reverseGeocode = async (latitude, longitude) => {
-    const url =
-        `https://nominatim.openstreetmap.org/reverse` +
-        `?lat=${latitude}` +
-        `&lon=${longitude}` +
-        `&format=json` +
-        `&addressdetails=1`;
+    const apiKey = process.env.GEOAPIFY_API_KEY;
 
-    const response = await fetch(url, {
-        headers: {
-            "User-Agent": "Sankalp-CivicPlatform/1.0"
-        }
-    });
+    if (!apiKey) {
+        throw new Error(
+            "GEOAPIFY_API_KEY is not configured"
+        );
+    }
+
+    const url =
+        `https://api.geoapify.com/v1/geocode/reverse` +
+        `?lat=${encodeURIComponent(latitude)}` +
+        `&lon=${encodeURIComponent(longitude)}` +
+        `&apiKey=${encodeURIComponent(apiKey)}`;
+
+    const response = await fetch(url);
 
     if (!response.ok) {
+        const text = await response.text();
+
         throw new Error(
-            `Reverse geocoding failed: ${response.status}`
+            `Geoapify reverse geocoding failed: ${response.status} ${text}`
         );
     }
 
     const data = await response.json();
 
-    const address = data.address || {};
+    const properties =
+        data.features?.[0]?.properties;
+
+    if (!properties) {
+        throw new Error(
+            "No address found for these coordinates"
+        );
+    }
 
     return {
-        address: data.display_name || "",
+        address:
+            properties.formatted || "",
+
         city:
-            address.city ||
-            address.town ||
-            address.village ||
-            address.municipality ||
+            properties.city ||
+            properties.town ||
+            properties.village ||
+            properties.municipality ||
             "",
-        state: address.state || "",
-        country: address.country || ""
+
+        state:
+            properties.state || "",
+
+        country:
+            properties.country || "",
+
+        postcode:
+            properties.postcode || ""
     };
 };
 

@@ -1,13 +1,15 @@
 import Problem from "../models/Problem.js";
 import uploadToCloudinary from "../services/cloudinaryService.js";
-import analyzeProblem from "../services/ai/geminiService.js";
 import createChallengeIfNeeded from "../services/challengeService.js";
-import reverseGeocode from "../services/geocodingService.js";
 
 const createProblem = async (req, res) => {
     try {
+        const { description, analysis } = req.body;
 
-        const { title, description } = req.body;
+        // -----------------------------
+        // IMAGE VALIDATION
+        // -----------------------------
+
         if (!req.file) {
             return res.status(400).json({
                 success: false,
@@ -15,12 +17,9 @@ const createProblem = async (req, res) => {
             });
         }
 
-        if (!title || title.trim().length < 5) {
-            return res.status(400).json({
-                success: false,
-                message: "Title must be at least 5 characters"
-            });
-        }
+        // -----------------------------
+        // DESCRIPTION VALIDATION
+        // -----------------------------
 
         if (!description || description.trim().length < 10) {
             return res.status(400).json({
@@ -28,6 +27,44 @@ const createProblem = async (req, res) => {
                 message: "Description must be at least 10 characters"
             });
         }
+
+        // -----------------------------
+        // ANALYSIS VALIDATION
+        // -----------------------------
+
+        if (!analysis) {
+            return res.status(400).json({
+                success: false,
+                message: "Report analysis is required"
+            });
+        }
+
+        let aiAnalysis;
+
+        try {
+            aiAnalysis =
+                typeof analysis === "string"
+                    ? JSON.parse(analysis)
+                    : analysis;
+        } catch {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid analysis format"
+            });
+        }
+
+        if (!aiAnalysis?.isValid) {
+            return res.status(422).json({
+                success: false,
+                message:
+                    "The report did not pass AI verification."
+            });
+        }
+
+        // -----------------------------
+        // LOCATION
+        // -----------------------------
+
         let location;
 
         try {
@@ -38,6 +75,10 @@ const createProblem = async (req, res) => {
                 message: "Invalid location format"
             });
         }
+
+        // -----------------------------
+        // LOCATION VALIDATION
+        // -----------------------------
 
         if (
             typeof location.latitude !== "number" ||
@@ -52,63 +93,58 @@ const createProblem = async (req, res) => {
                 message: "Invalid latitude or longitude"
             });
         }
-        let locationDetails;
 
-        try {
-            locationDetails = await reverseGeocode(
-                location.latitude,
-                location.longitude
-            );
-        } catch (error) {
-            console.error(
-                "Reverse geocoding failed:",
-                error.message
-            );
+        // -----------------------------
+        // CLOUDINARY
+        // -----------------------------
 
-            locationDetails = {
-                address: "",
-                city: "",
-                state: "",
-                country: ""
-            };
-        }
+        const result = await uploadToCloudinary(
+            req.file.buffer
+        );
 
-        let aiAnalysis = null;
-        try {
-            aiAnalysis = await analyzeProblem({
-                title: req.body.title,
-                description: req.body.description,
-                imageBuffer: req.file.buffer,
-                mimeType: req.file.mimetype
-            });
-        } catch (error) {
-            console.error("AI analysis failed:", error.message);
-        }
+        const media = [result.secure_url];
 
-        let media = [];
-        const result = await uploadToCloudinary(req.file.buffer);
-        media.push(result.secure_url);
+        // -----------------------------
+        // CREATE PROBLEM
+        // -----------------------------
 
         const problem = await Problem.create({
             submittedBy: req.user.uid,
-            title: title.trim(),
+
+            // Gemini-generated title
+            title: aiAnalysis.title,
+
+            // Citizen's original description
             description: description.trim(),
+
             media,
+
+            // Location already reverse-geocoded
+            // during /api/problems/analyze
             location: {
                 latitude: location.latitude,
                 longitude: location.longitude,
                 address:
-                    locationDetails.address || "",
+                    location.address || "",
                 city:
-                    locationDetails.city || "",
+                    location.city || "",
                 state:
-                    locationDetails.state || "",
+                    location.state || "",
                 country:
-                    locationDetails.country || ""
+                    location.country || ""
             },
-            aiAnalysis: aiAnalysis,
+
+            // Reuse the analysis confirmed by
+            // the citizen instead of running Gemini again.
+            aiAnalysis,
+
             status: "Submitted"
-        })
+        });
+
+        // -----------------------------
+        // CREATE CHALLENGE
+        // -----------------------------
+
         try {
             await createChallengeIfNeeded(
                 aiAnalysis.category,
@@ -121,19 +157,27 @@ const createProblem = async (req, res) => {
             );
         }
 
+        // -----------------------------
+        // RESPONSE
+        // -----------------------------
 
-
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
             message: "Problem created successfully",
             problem
-        })
-    } catch (error) {
-        console.error(error);
+        });
 
-        res.status(500).json({
+    } catch (error) {
+        console.error(
+            "Problem creation failed:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
             message: "Failed to submit problem"
         });
     }
-}
+};
+
 export default createProblem;

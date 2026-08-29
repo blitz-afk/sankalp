@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { registerWithFirebase } from "../../services/authService";
+import api from "../../services/api";
+
 import {
     ArrowLeft,
     ArrowRight,
@@ -7,23 +10,22 @@ import {
     EyeOff,
     Mail,
     Lock,
+    Check,
 } from "lucide-react";
-import {
-    loginWithFirebase,
-} from "../../services/authService";
 
-import api from "../../services/api";
-
-export default function LoginPage() {
+export default function CitizenRegister() {
     const navigate = useNavigate();
 
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
     const [form, setForm] = useState({
         email: "",
         password: "",
+        confirmPassword: "",
+        terms: false,
     });
 
     const updateField = (field, value) => {
@@ -38,21 +40,32 @@ export default function LoginPage() {
 
         setError("");
 
+        if (form.password !== form.confirmPassword) {
+            setError("Passwords do not match.");
+            return;
+        }
+
+        if (!form.terms) {
+            setError("Please accept the terms and conditions.");
+            return;
+        }
+
         try {
             setLoading(true);
 
-            // 1. Sign in with Firebase
-            const firebaseUser = await loginWithFirebase(
+            // Create account in Firebase
+            const firebaseUser = await registerWithFirebase(
                 form.email,
                 form.password
             );
 
-            // 2. Get Firebase ID token
+            // Get Firebase ID token
             const token = await firebaseUser.getIdToken();
 
-            // 3. Ask backend who this user is
-            const response = await api.get(
-                "/auth/me",
+            // Create Citizen profile in MongoDB
+            await api.post(
+                "/auth/register/citizen",
+                {},
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -60,40 +73,22 @@ export default function LoginPage() {
                 }
             );
 
-            const role = response.data.user.role;
-
-            console.log("Logged in user:", response.data);
-
-            // 4. Redirect based on role
-            if (role === "Citizen") {
-                navigate("/citizen");
-            } else if (role === "University") {
-                navigate("/university");
-            } else if (role === "Industry") {
-                navigate("/industry");
-            } else if (role === "GovernmentOfficer") {
-                navigate("/government/officer");
-            } else if (role === "GovernmentBody") {
-                navigate("/government/body");
-            } else if (role === "Admin") {
-                navigate("/admin");
-            } else {
-                setError("Unknown user role.");
-            }
+            // Registration successful
+            navigate("/login");
 
         } catch (error) {
-            console.error("Login error:", error);
+            console.error("Citizen registration error:", error);
 
-            if (
-                error.code === "auth/invalid-credential" ||
-                error.code === "auth/user-not-found" ||
-                error.code === "auth/wrong-password"
-            ) {
-                setError("Invalid email or password.");
+            if (error.code === "auth/email-already-in-use") {
+                setError("An account with this email already exists.");
+            } else if (error.code === "auth/invalid-email") {
+                setError("Please enter a valid email address.");
+            } else if (error.code === "auth/weak-password") {
+                setError("Password must be at least 6 characters.");
             } else {
                 setError(
                     error.response?.data?.message ||
-                    "Login failed. Please try again."
+                    "Registration failed. Please try again."
                 );
             }
         } finally {
@@ -116,18 +111,18 @@ export default function LoginPage() {
                     </Link>
 
                     <Link
-                        to="/"
+                        to="/register"
                         className="flex items-center gap-2 rounded-sm px-4 py-2 text-sm font-medium transition-colors hover:bg-[#171914]/5"
                     >
                         <ArrowLeft size={15} />
-                        Back to Home
+                        Change role
                     </Link>
 
                 </div>
             </nav>
 
             {/* MAIN */}
-            <main className="relative flex min-h-[calc(100vh-64px)] items-center overflow-hidden py-16">
+            <main className="relative overflow-hidden py-16 md:py-24">
 
                 {/* Blueprint grid */}
                 <div
@@ -139,24 +134,26 @@ export default function LoginPage() {
                     }}
                 />
 
-                <div className="relative mx-auto w-full max-w-6xl px-6">
+                <div className="relative mx-auto max-w-6xl px-6">
 
                     {/* HEADING */}
-                    <div className="mx-auto mb-10 max-w-2xl text-center">
+                    <div className="mx-auto mb-12 max-w-2xl text-center">
 
                         <span className="mb-5 inline-block border border-[#2563eb]/20 bg-[#2563eb]/10 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-[#2563eb]">
-                            Authentication
+                            Citizen Registration
                         </span>
 
                         <h1 className="text-5xl font-bold leading-[0.95] tracking-[-0.04em] md:text-6xl">
-                            Welcome{" "}
+                            Create your{" "}
                             <span className="italic text-[#2563eb]">
-                                back.
-                            </span>
+                                citizen
+                            </span>{" "}
+                            account.
                         </h1>
 
                         <p className="mt-5 text-lg leading-relaxed text-[#171914]/55">
-                            Sign in to continue your work on Sankalp.
+                            Join Sankalp and help turn civic problems into
+                            real-world solutions.
                         </p>
 
                     </div>
@@ -205,20 +202,9 @@ export default function LoginPage() {
                             {/* PASSWORD */}
                             <div>
 
-                                <div className="mb-2 flex items-center justify-between">
-
-                                    <label className="font-mono text-xs uppercase tracking-wider text-[#171914]/55">
-                                        Password
-                                    </label>
-
-                                    <button
-                                        type="button"
-                                        className="text-xs font-medium text-[#2563eb] hover:underline"
-                                    >
-                                        Forgot password?
-                                    </button>
-
-                                </div>
+                                <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
+                                    Password
+                                </label>
 
                                 <div className="relative">
 
@@ -234,7 +220,8 @@ export default function LoginPage() {
                                                 : "password"
                                         }
                                         required
-                                        autoComplete="current-password"
+                                        minLength={6}
+                                        autoComplete="new-password"
                                         value={form.password}
                                         onChange={(e) =>
                                             updateField(
@@ -242,7 +229,7 @@ export default function LoginPage() {
                                                 e.target.value
                                             )
                                         }
-                                        placeholder="Enter your password"
+                                        placeholder="Create a password"
                                         className="h-12 w-full border border-[#171914]/15 bg-[#f8f8f5] pl-11 pr-12 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
                                     />
 
@@ -264,7 +251,88 @@ export default function LoginPage() {
 
                                 </div>
 
+                                <p className="mt-2 text-xs text-[#171914]/40">
+                                    Minimum 6 characters.
+                                </p>
+
                             </div>
+
+                            {/* CONFIRM PASSWORD */}
+                            <div>
+
+                                <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
+                                    Confirm Password
+                                </label>
+
+                                <div className="relative">
+
+                                    <Lock
+                                        size={18}
+                                        className="absolute left-4 top-1/2 -translate-y-1/2 text-[#171914]/35"
+                                    />
+
+                                    <input
+                                        type={
+                                            showConfirmPassword
+                                                ? "text"
+                                                : "password"
+                                        }
+                                        required
+                                        autoComplete="new-password"
+                                        value={form.confirmPassword}
+                                        onChange={(e) =>
+                                            updateField(
+                                                "confirmPassword",
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Confirm your password"
+                                        className="h-12 w-full border border-[#171914]/15 bg-[#f8f8f5] pl-11 pr-12 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
+                                    />
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowConfirmPassword(
+                                                (value) => !value
+                                            )
+                                        }
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[#171914]/35 hover:text-[#171914]"
+                                    >
+                                        {showConfirmPassword ? (
+                                            <EyeOff size={18} />
+                                        ) : (
+                                            <Eye size={18} />
+                                        )}
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                            {/* TERMS */}
+                            <label className="flex cursor-pointer items-start gap-3 border-t border-[#171914]/10 pt-6">
+
+                                <input
+                                    type="checkbox"
+                                    checked={form.terms}
+                                    onChange={(e) =>
+                                        updateField(
+                                            "terms",
+                                            e.target.checked
+                                        )
+                                    }
+                                    className="mt-0.5 h-4 w-4 accent-[#2563eb]"
+                                />
+
+                                <span className="text-sm leading-relaxed text-[#171914]/55">
+                                    I agree to Sankalp's terms of use and
+                                    understand that submitted civic reports
+                                    may be reviewed for improving public
+                                    services.
+                                </span>
+
+                            </label>
 
                             {/* ERROR */}
                             {error && (
@@ -280,23 +348,23 @@ export default function LoginPage() {
                                 className="flex w-full items-center justify-center gap-2 bg-[#171914] px-6 py-4 text-sm font-semibold text-white transition-all hover:bg-[#2563eb] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 {loading
-                                    ? "Signing in..."
-                                    : "Sign In"}
+                                    ? "Creating account..."
+                                    : "Create Citizen Account"}
 
                                 {!loading && (
                                     <ArrowRight size={17} />
                                 )}
                             </button>
 
-                            {/* REGISTER */}
+                            {/* LOGIN */}
                             <p className="text-center text-sm text-[#171914]/45">
-                                Don't have an account?{" "}
+                                Already have an account?{" "}
 
                                 <Link
-                                    to="/register"
+                                    to="/login"
                                     className="font-semibold text-[#2563eb] hover:underline"
                                 >
-                                    Create one
+                                    Login
                                 </Link>
                             </p>
 
@@ -305,9 +373,16 @@ export default function LoginPage() {
                     </div>
 
                     {/* SECURITY */}
-                    <p className="mt-8 text-center font-mono text-[10px] uppercase tracking-wider text-[#171914]/35">
+                    <div className="mx-auto mt-8 flex max-w-xl items-center justify-center gap-2 text-center font-mono text-[10px] uppercase tracking-wider text-[#171914]/35">
+
+                        <Check
+                            size={13}
+                            className="text-[#2563eb]"
+                        />
+
                         Secure authentication powered by Firebase
-                    </p>
+
+                    </div>
 
                 </div>
 
