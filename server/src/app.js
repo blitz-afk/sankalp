@@ -13,6 +13,7 @@ import pilotEvaluationRoutes from "./routes/pilotEvaluationRoutes.js";
 import pilotVerificationRoutes from "./routes/pilotVerificationRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import problemAnalysisRoutes from "./routes/problemAnalysisRoutes.js";
+import challengeRoutes from "./routes/challengeRoutes.js";
 import cors from "cors";
 
 const app = express();
@@ -53,6 +54,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/problems", problemRoutes);
+app.use("/api/challenges", challengeRoutes);
 app.use("/api/university", universityRoutes);
 app.use("/api/solutions", solutionRoutes);
 app.use("/api/industry", industryRoutes);
@@ -65,5 +67,6 @@ app.use("/api/pilots", pilotRoutes);
 app.use("/api/pilot-evaluations", pilotEvaluationRoutes);
 app.use("/api/pilot-verifications", pilotVerificationRoutes);
 app.use("/api/problems/analyze", problemAnalysisRoutes);
+
 
 export default app;

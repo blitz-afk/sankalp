@@ -5,6 +5,8 @@ import CitizenRegister from "./pages/Register/CitizenRegister";
 import LoginPage from "./pages/Login/LoginPage";
 import CitizenDashboard from "./pages/Citizen/CitizenDashboard";
 import CitizenReports from "./pages/Citizen/CitizenReports";
+import UniversityRegister from "./pages/Register/UniversityRegister";
+import UniversityDashboard from "./pages/University/UniversityDashboard";
 
 function Placeholder({ title }) {
   return (
@@ -40,7 +42,7 @@ export default function App() {
 
       <Route
         path="/register/university"
-        element={<Placeholder title="University Registration" />}
+        element={<UniversityRegister />}
       />
 
       <Route
@@ -53,6 +55,10 @@ export default function App() {
       <Route
         path="/citizen"
         element={<CitizenDashboard />}
+      />
+      <Route
+        path="/university"
+        element={<UniversityDashboard />}
       />
       <Route
         path="/citizen/reports"

@@ -2,7 +2,8 @@ import express from "express";
 
 import {
     registerCitizen,
-    getMe
+    getMe,
+    registerUniversity
 } from "../controllers/authController.js";
 
 import firebaseAuth from "../middleware/firebaseAuth.js";
@@ -20,5 +21,11 @@ router.get(
     firebaseAuth,
     getMe
 );
+router.post(
+    "/register/university",
+    firebaseAuth,
+    registerUniversity
+);
+
 
 export default router;  

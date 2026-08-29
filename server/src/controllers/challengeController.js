@@ -1,52 +1,33 @@
 import Challenge from "../models/Challenge.js";
-import Problem from "../models/Problem.js";
-import generateChallenge from "./ai/challengeGenerator.js";
 
+const getOpenChallenges = async (req, res) => {
+    try {
+        const challenges = await Challenge.find({
+            status: {
+                $in: ["Open", "In-Progress"]
+            }
+        })
+            .sort({ createdAt: -1 })
+            .lean();
 
-const createChallengeIfNeeded = async (category) => {
+        return res.status(200).json({
+            success: true,
+            challenges
+        });
 
-    // Check if a challenge already exists for this category
-    const existingChallenge = await Challenge.findOne({
-        category,
-        status: {
-            $in: ["Open", "In-Progress"]
-        }
-    });
+    } catch (error) {
+        console.error(
+            "GET OPEN CHALLENGES ERROR:",
+            error
+        );
 
-    if (existingChallenge) {
-        return existingChallenge;
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch challenges"
+        });
     }
-
-    // Get all valid problems belonging to this category
-    const problems = await Problem.find({
-        "aiAnalysis.isValid": true,
-        "aiAnalysis.category": category
-    }).select(
-        "title description location aiAnalysis.severity aiAnalysis.summary"
-    );
-
-    if (problems.length === 0) {
-        return null;
-    }
-
-    // Generate a challenge from the collected reports
-    const challengeData = await generateChallenge({
-        category,
-        problems
-    });
-
-    // Save challenge
-    const challenge = await Challenge.create({
-        category,
-        requiredDomains: generated.requiredDomains,
-        title: challengeData.title,
-        problemStatement: challengeData.problemStatement,
-        objective: challengeData.objective,
-        expectedOutcome: challengeData.expectedOutcome,
-        reportCount: problems.length
-    });
-
-    return challenge;
 };
 
-export default createChallengeIfNeeded;
+export {
+    getOpenChallenges
+};
