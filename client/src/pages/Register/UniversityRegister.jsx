@@ -1,8 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { registerWithFirebase } from "../../services/authService";
-import api from "../../services/api";
-
 import {
     ArrowLeft,
     ArrowRight,
@@ -11,7 +8,15 @@ import {
     Mail,
     Lock,
     Check,
+    Building2,
+    Globe,
+    MapPin,
+    Plus,
+    X,
 } from "lucide-react";
+
+import { registerWithFirebase } from "../../services/authService";
+import api from "../../services/api";
 
 export default function UniversityRegister() {
     const navigate = useNavigate();
@@ -19,6 +24,7 @@ export default function UniversityRegister() {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] =
         useState(false);
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -26,6 +32,17 @@ export default function UniversityRegister() {
         email: "",
         password: "",
         confirmPassword: "",
+
+        name: "",
+        description: "",
+        website: "",
+
+        city: "",
+        state: "",
+        country: "India",
+
+        domains: [""],
+
         terms: false,
     });
 
@@ -36,10 +53,77 @@ export default function UniversityRegister() {
         }));
     };
 
+    const updateDomain = (index, value) => {
+        setForm((prev) => {
+            const domains = [...prev.domains];
+            domains[index] = value;
+
+            return {
+                ...prev,
+                domains,
+            };
+        });
+    };
+
+    const addDomain = () => {
+        setForm((prev) => ({
+            ...prev,
+            domains: [...prev.domains, ""],
+        }));
+    };
+
+    const removeDomain = (index) => {
+        setForm((prev) => {
+            const domains = prev.domains.filter(
+                (_, i) => i !== index
+            );
+
+            return {
+                ...prev,
+                domains: domains.length > 0 ? domains : [""],
+            };
+        });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
         setError("");
+
+        if (!form.name.trim()) {
+            setError("University name is required.");
+            return;
+        }
+
+        if (form.name.trim().length < 2) {
+            setError(
+                "University name must be at least 2 characters."
+            );
+            return;
+        }
+
+        if (!form.description.trim()) {
+            setError("University description is required.");
+            return;
+        }
+
+        if (form.description.trim().length < 10) {
+            setError(
+                "University description must be at least 10 characters."
+            );
+            return;
+        }
+
+        const cleanedDomains = form.domains
+            .map((domain) => domain.trim())
+            .filter(Boolean);
+
+        if (cleanedDomains.length === 0) {
+            setError(
+                "Please add at least one university domain."
+            );
+            return;
+        }
 
         if (form.password !== form.confirmPassword) {
             setError("Passwords do not match.");
@@ -47,26 +131,52 @@ export default function UniversityRegister() {
         }
 
         if (!form.terms) {
-            setError("Please accept the terms and conditions.");
+            setError(
+                "Please accept the terms and conditions."
+            );
             return;
         }
 
         try {
             setLoading(true);
 
-            // Create account in Firebase
+            // ============================================
+            // 1. CREATE FIREBASE ACCOUNT
+            // ============================================
+
             const firebaseUser = await registerWithFirebase(
                 form.email,
                 form.password
             );
 
-            // Get Firebase ID token
+            // ============================================
+            // 2. GET FIREBASE ID TOKEN
+            // ============================================
+
             const token = await firebaseUser.getIdToken();
 
-            // Create University profile in MongoDB
+            // ============================================
+            // 3. CREATE UNIVERSITY PROFILE
+            // ============================================
+
             await api.post(
-                "/auth/register/university",
-                {},
+                "/university/register",
+                {
+                    name: form.name.trim(),
+
+                    description: form.description.trim(),
+
+                    domains: cleanedDomains,
+
+                    location: {
+                        city: form.city.trim(),
+                        state: form.state.trim(),
+                        country:
+                            form.country.trim() || "India",
+                    },
+
+                    website: form.website.trim(),
+                },
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -74,21 +184,34 @@ export default function UniversityRegister() {
                 }
             );
 
-            // Registration successful
+            // ============================================
+            // 4. REGISTRATION COMPLETE
+            // ============================================
+
             navigate("/login");
+
         } catch (error) {
             console.error(
                 "University registration error:",
                 error
             );
 
-            if (error.code === "auth/email-already-in-use") {
+            if (
+                error.code ===
+                "auth/email-already-in-use"
+            ) {
                 setError(
                     "An account with this email already exists."
                 );
-            } else if (error.code === "auth/invalid-email") {
-                setError("Please enter a valid email address.");
-            } else if (error.code === "auth/weak-password") {
+            } else if (
+                error.code === "auth/invalid-email"
+            ) {
+                setError(
+                    "Please enter a valid email address."
+                );
+            } else if (
+                error.code === "auth/weak-password"
+            ) {
                 setError(
                     "Password must be at least 6 characters."
                 );
@@ -109,6 +232,7 @@ export default function UniversityRegister() {
             {/* NAVBAR */}
 
             <nav className="sticky top-0 z-50 border-b border-[#171914]/10 bg-[#f8f8f5]/90 backdrop-blur-md">
+
                 <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
 
                     <Link
@@ -127,6 +251,7 @@ export default function UniversityRegister() {
                     </Link>
 
                 </div>
+
             </nav>
 
             {/* MAIN */}
@@ -163,8 +288,8 @@ export default function UniversityRegister() {
                         </h1>
 
                         <p className="mt-5 text-lg leading-relaxed text-[#171914]/55">
-                            Join Sankalp and help turn civic problems
-                            into real-world solutions.
+                            Join Sankalp and help turn civic
+                            problems into real-world solutions.
                         </p>
 
                     </div>
@@ -178,150 +303,430 @@ export default function UniversityRegister() {
                             className="space-y-7"
                         >
 
-                            {/* EMAIL */}
+                            {/* =========================================
+                                UNIVERSITY INFORMATION
+                            ========================================= */}
 
-                            <div>
+                            <div className="border-b border-[#171914]/10 pb-6">
 
-                                <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
-                                    Email Address
-                                </label>
+                                <div className="mb-5 flex items-center gap-2">
 
-                                <div className="relative">
-
-                                    <Mail
+                                    <Building2
                                         size={18}
-                                        className="absolute left-4 top-1/2 -translate-y-1/2 text-[#171914]/35"
+                                        className="text-[#2563eb]"
                                     />
 
+                                    <h2 className="font-mono text-xs font-semibold uppercase tracking-wider">
+                                        University Information
+                                    </h2>
+
+                                </div>
+
+                                {/* NAME */}
+
+                                <div>
+
+                                    <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
+                                        University Name
+                                    </label>
+
                                     <input
-                                        type="email"
+                                        type="text"
                                         required
-                                        autoComplete="email"
-                                        value={form.email}
+                                        value={form.name}
                                         onChange={(e) =>
                                             updateField(
-                                                "email",
+                                                "name",
                                                 e.target.value
                                             )
                                         }
-                                        placeholder="you@university.edu"
-                                        className="h-12 w-full border border-[#171914]/15 bg-[#f8f8f5] pl-11 pr-4 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
+                                        placeholder="Your University Name"
+                                        className="h-12 w-full border border-[#171914]/15 bg-[#f8f8f5] px-4 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
+                                    />
+
+                                </div>
+
+                                {/* DESCRIPTION */}
+
+                                <div className="mt-5">
+
+                                    <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
+                                        Description
+                                    </label>
+
+                                    <textarea
+                                        required
+                                        rows={4}
+                                        value={form.description}
+                                        onChange={(e) =>
+                                            updateField(
+                                                "description",
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Tell us about your university..."
+                                        className="w-full resize-none border border-[#171914]/15 bg-[#f8f8f5] px-4 py-3 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
+                                    />
+
+                                </div>
+
+                                {/* DOMAINS */}
+
+                                <div className="mt-5">
+
+                                    <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
+                                        Domains
+                                    </label>
+
+                                    <div className="space-y-2">
+
+                                        {form.domains.map(
+                                            (domain, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="flex gap-2"
+                                                >
+
+                                                    <input
+                                                        type="text"
+                                                        value={domain}
+                                                        onChange={(e) =>
+                                                            updateDomain(
+                                                                index,
+                                                                e.target.value
+                                                            )
+                                                        }
+                                                        placeholder="e.g. Computer Science"
+                                                        className="h-11 flex-1 border border-[#171914]/15 bg-[#f8f8f5] px-4 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
+                                                    />
+
+                                                    {form.domains.length >
+                                                        1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                removeDomain(
+                                                                    index
+                                                                )
+                                                            }
+                                                            className="flex h-11 w-11 items-center justify-center border border-[#171914]/10 text-[#171914]/45 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                                                        >
+                                                            <X size={16} />
+                                                        </button>
+                                                    )}
+
+                                                </div>
+                                            )
+                                        )}
+
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={addDomain}
+                                        className="mt-3 flex items-center gap-2 text-xs font-semibold text-[#2563eb] hover:underline"
+                                    >
+                                        <Plus size={14} />
+                                        Add another domain
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                            {/* =========================================
+                                LOCATION
+                            ========================================= */}
+
+                            <div className="border-b border-[#171914]/10 pb-6">
+
+                                <div className="mb-5 flex items-center gap-2">
+
+                                    <MapPin
+                                        size={18}
+                                        className="text-[#2563eb]"
+                                    />
+
+                                    <h2 className="font-mono text-xs font-semibold uppercase tracking-wider">
+                                        Location
+                                    </h2>
+
+                                </div>
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+
+                                    <div>
+
+                                        <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
+                                            City
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            value={form.city}
+                                            onChange={(e) =>
+                                                updateField(
+                                                    "city",
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Pune"
+                                            className="h-12 w-full border border-[#171914]/15 bg-[#f8f8f5] px-4 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
+                                        />
+
+                                    </div>
+
+                                    <div>
+
+                                        <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
+                                            State
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            value={form.state}
+                                            onChange={(e) =>
+                                                updateField(
+                                                    "state",
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Maharashtra"
+                                            className="h-12 w-full border border-[#171914]/15 bg-[#f8f8f5] px-4 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
+                                        />
+
+                                    </div>
+
+                                </div>
+
+                                <div className="mt-4">
+
+                                    <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
+                                        Country
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value={form.country}
+                                        onChange={(e) =>
+                                            updateField(
+                                                "country",
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="India"
+                                        className="h-12 w-full border border-[#171914]/15 bg-[#f8f8f5] px-4 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
                                     />
 
                                 </div>
 
                             </div>
 
-                            {/* PASSWORD */}
+                            {/* =========================================
+                                WEBSITE
+                            ========================================= */}
 
                             <div>
 
-                                <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
-                                    Password
-                                </label>
+                                <div className="mb-5 flex items-center gap-2">
 
-                                <div className="relative">
-
-                                    <Lock
+                                    <Globe
                                         size={18}
-                                        className="absolute left-4 top-1/2 -translate-y-1/2 text-[#171914]/35"
+                                        className="text-[#2563eb]"
                                     />
 
-                                    <input
-                                        type={
-                                            showPassword
-                                                ? "text"
-                                                : "password"
-                                        }
-                                        required
-                                        minLength={6}
-                                        autoComplete="new-password"
-                                        value={form.password}
-                                        onChange={(e) =>
-                                            updateField(
-                                                "password",
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="Create a password"
-                                        className="h-12 w-full border border-[#171914]/15 bg-[#f8f8f5] pl-11 pr-12 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
-                                    />
-
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setShowPassword(
-                                                (value) => !value
-                                            )
-                                        }
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[#171914]/35 hover:text-[#171914]"
-                                    >
-                                        {showPassword ? (
-                                            <EyeOff size={18} />
-                                        ) : (
-                                            <Eye size={18} />
-                                        )}
-                                    </button>
+                                    <h2 className="font-mono text-xs font-semibold uppercase tracking-wider">
+                                        Online Presence
+                                    </h2>
 
                                 </div>
 
-                                <p className="mt-2 text-xs text-[#171914]/40">
-                                    Minimum 6 characters.
-                                </p>
+                                <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
+                                    Website
+                                </label>
+
+                                <input
+                                    type="url"
+                                    value={form.website}
+                                    onChange={(e) =>
+                                        updateField(
+                                            "website",
+                                            e.target.value
+                                        )
+                                    }
+                                    placeholder="https://youruniversity.edu"
+                                    className="h-12 w-full border border-[#171914]/15 bg-[#f8f8f5] px-4 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
+                                />
 
                             </div>
 
-                            {/* CONFIRM PASSWORD */}
+                            {/* =========================================
+                                ACCOUNT
+                            ========================================= */}
 
-                            <div>
+                            <div className="border-t border-[#171914]/10 pt-6">
 
-                                <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
-                                    Confirm Password
-                                </label>
-
-                                <div className="relative">
+                                <div className="mb-5 flex items-center gap-2">
 
                                     <Lock
                                         size={18}
-                                        className="absolute left-4 top-1/2 -translate-y-1/2 text-[#171914]/35"
+                                        className="text-[#2563eb]"
                                     />
 
-                                    <input
-                                        type={
-                                            showConfirmPassword
-                                                ? "text"
-                                                : "password"
-                                        }
-                                        required
-                                        autoComplete="new-password"
-                                        value={
-                                            form.confirmPassword
-                                        }
-                                        onChange={(e) =>
-                                            updateField(
-                                                "confirmPassword",
-                                                e.target.value
-                                            )
-                                        }
-                                        placeholder="Confirm your password"
-                                        className="h-12 w-full border border-[#171914]/15 bg-[#f8f8f5] pl-11 pr-12 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
-                                    />
+                                    <h2 className="font-mono text-xs font-semibold uppercase tracking-wider">
+                                        Account Security
+                                    </h2>
 
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setShowConfirmPassword(
-                                                (value) => !value
-                                            )
-                                        }
-                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-[#171914]/35 hover:text-[#171914]"
-                                    >
-                                        {showConfirmPassword ? (
-                                            <EyeOff size={18} />
-                                        ) : (
-                                            <Eye size={18} />
-                                        )}
-                                    </button>
+                                </div>
+
+                                {/* EMAIL */}
+
+                                <div>
+
+                                    <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
+                                        Email Address
+                                    </label>
+
+                                    <div className="relative">
+
+                                        <Mail
+                                            size={18}
+                                            className="absolute left-4 top-1/2 -translate-y-1/2 text-[#171914]/35"
+                                        />
+
+                                        <input
+                                            type="email"
+                                            required
+                                            autoComplete="email"
+                                            value={form.email}
+                                            onChange={(e) =>
+                                                updateField(
+                                                    "email",
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="admin@university.edu"
+                                            className="h-12 w-full border border-[#171914]/15 bg-[#f8f8f5] pl-11 pr-4 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
+                                        />
+
+                                    </div>
+
+                                </div>
+
+                                {/* PASSWORD */}
+
+                                <div className="mt-5">
+
+                                    <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
+                                        Password
+                                    </label>
+
+                                    <div className="relative">
+
+                                        <Lock
+                                            size={18}
+                                            className="absolute left-4 top-1/2 -translate-y-1/2 text-[#171914]/35"
+                                        />
+
+                                        <input
+                                            type={
+                                                showPassword
+                                                    ? "text"
+                                                    : "password"
+                                            }
+                                            required
+                                            minLength={6}
+                                            autoComplete="new-password"
+                                            value={form.password}
+                                            onChange={(e) =>
+                                                updateField(
+                                                    "password",
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Create a password"
+                                            className="h-12 w-full border border-[#171914]/15 bg-[#f8f8f5] pl-11 pr-12 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
+                                        />
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setShowPassword(
+                                                    (value) =>
+                                                        !value
+                                                )
+                                            }
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#171914]/35 hover:text-[#171914]"
+                                        >
+                                            {showPassword ? (
+                                                <EyeOff size={18} />
+                                            ) : (
+                                                <Eye size={18} />
+                                            )}
+                                        </button>
+
+                                    </div>
+
+                                    <p className="mt-2 text-xs text-[#171914]/40">
+                                        Minimum 6 characters.
+                                    </p>
+
+                                </div>
+
+                                {/* CONFIRM PASSWORD */}
+
+                                <div className="mt-5">
+
+                                    <label className="mb-2 block font-mono text-xs uppercase tracking-wider text-[#171914]/55">
+                                        Confirm Password
+                                    </label>
+
+                                    <div className="relative">
+
+                                        <Lock
+                                            size={18}
+                                            className="absolute left-4 top-1/2 -translate-y-1/2 text-[#171914]/35"
+                                        />
+
+                                        <input
+                                            type={
+                                                showConfirmPassword
+                                                    ? "text"
+                                                    : "password"
+                                            }
+                                            required
+                                            autoComplete="new-password"
+                                            value={
+                                                form.confirmPassword
+                                            }
+                                            onChange={(e) =>
+                                                updateField(
+                                                    "confirmPassword",
+                                                    e.target.value
+                                                )
+                                            }
+                                            placeholder="Confirm your password"
+                                            className="h-12 w-full border border-[#171914]/15 bg-[#f8f8f5] pl-11 pr-12 text-sm outline-none transition-colors placeholder:text-[#171914]/30 focus:border-[#2563eb]"
+                                        />
+
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                setShowConfirmPassword(
+                                                    (value) =>
+                                                        !value
+                                                )
+                                            }
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#171914]/35 hover:text-[#171914]"
+                                        >
+                                            {showConfirmPassword ? (
+                                                <EyeOff size={18} />
+                                            ) : (
+                                                <Eye size={18} />
+                                            )}
+                                        </button>
+
+                                    </div>
 
                                 </div>
 
@@ -344,10 +749,10 @@ export default function UniversityRegister() {
                                 />
 
                                 <span className="text-sm leading-relaxed text-[#171914]/55">
-                                    I agree to Sankalp's terms of use
-                                    and understand that submitted civic
-                                    reports may be reviewed for
-                                    improving public services.
+                                    I agree to Sankalp's terms of
+                                    use and understand that submitted
+                                    civic reports may be reviewed
+                                    for improving public services.
                                 </span>
 
                             </label>
@@ -379,6 +784,7 @@ export default function UniversityRegister() {
                             {/* LOGIN */}
 
                             <p className="text-center text-sm text-[#171914]/45">
+
                                 Already have an account?{" "}
 
                                 <Link
@@ -387,6 +793,7 @@ export default function UniversityRegister() {
                                 >
                                     Login
                                 </Link>
+
                             </p>
 
                         </form>

@@ -1,39 +1,42 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+
 import LandingPage from "./pages/Landing/LandingPage";
 import RegisterPage from "./pages/Register/RegisterPage";
+
 import CitizenRegister from "./pages/Register/CitizenRegister";
+import UniversityRegister from "./pages/Register/UniversityRegister";
+import IndustryRegister from "./pages/Register/IndustryRegister";
+
 import LoginPage from "./pages/Login/LoginPage";
+
+import CitizenHome from "./pages/Citizen/CitizenHome";
 import CitizenDashboard from "./pages/Citizen/CitizenDashboard";
 import CitizenReports from "./pages/Citizen/CitizenReports";
-import UniversityRegister from "./pages/Register/UniversityRegister";
+
 import UniversityDashboard from "./pages/University/UniversityDashboard";
+import ChallengeDetails from "./pages/University/ChallengeDetails";
+import SubmitSolution from "./pages/University/SubmitSolution";
+import UniversitySubmission from "./pages/University/UniversitySubmission";
 
-function Placeholder({ title }) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f8f8f5]">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold">{title}</h1>
-        <p className="mt-3 text-[#171914]/50">
-          Registration form coming next.
-        </p>
-
-        <a
-          href="/register"
-          className="mt-6 inline-block bg-[#171914] px-6 py-3 text-sm text-white"
-        >
-          Back
-        </a>
-      </div>
-    </div>
-  );
-}
+import IndustryDashboard from "./pages/Industry/IndustryDashboard";
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
 
-      <Route path="/register" element={<RegisterPage />} />
+      {/* ================================
+                    PUBLIC
+          ================================= */}
+
+      <Route
+        path="/"
+        element={<LandingPage />}
+      />
+
+      <Route
+        path="/register"
+        element={<RegisterPage />}
+      />
 
       <Route
         path="/register/citizen"
@@ -47,24 +50,79 @@ export default function App() {
 
       <Route
         path="/register/industry"
-        element={<Placeholder title="Industry Registration" />}
+        element={<IndustryRegister />}
       />
 
-      <Route path="/login" element={<LoginPage />} />
+      <Route
+        path="/login"
+        element={<LoginPage />}
+      />
+
+
+      {/* ================================
+                    CITIZEN
+          ================================= */}
 
       <Route
         path="/citizen"
+        element={<CitizenHome />}
+      />
+
+      <Route
+        path="/citizen/report"
         element={<CitizenDashboard />}
       />
-      <Route
-        path="/university"
-        element={<UniversityDashboard />}
-      />
+
       <Route
         path="/citizen/reports"
         element={<CitizenReports />}
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
+
+
+      {/* ================================
+                  UNIVERSITY
+          ================================= */}
+
+      <Route
+        path="/university"
+        element={<UniversityDashboard />}
+      />
+
+      <Route
+        path="/university/challenges/:id"
+        element={<ChallengeDetails />}
+      />
+
+      <Route
+        path="/university/challenges/:id/submit"
+        element={<SubmitSolution />}
+      />
+
+      <Route
+        path="/university/challenges/:id/submission"
+        element={<UniversitySubmission />}
+      />
+
+
+      {/* ================================
+                    INDUSTRY
+          ================================= */}
+
+      <Route
+        path="/industry"
+        element={<IndustryDashboard />}
+      />
+
+
+      {/* ================================
+                    FALLBACK
+          ================================= */}
+
+      <Route
+        path="*"
+        element={<Navigate to="/" replace />}
+      />
+
     </Routes>
   );
 }
