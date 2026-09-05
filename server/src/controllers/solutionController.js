@@ -3,9 +3,7 @@ import University from "../models/University.js";
 import Challenge from "../models/Challenge.js";
 
 const createSolution = async (req, res) => {
-
     try {
-
         const {
             challengeId,
             title,
@@ -57,7 +55,11 @@ const createSolution = async (req, res) => {
                 message: "Expected impact is required"
             });
         }
-        if (!proposalDocumentUrl || proposalDocumentUrl.trim().length === 0) {
+
+        if (
+            !proposalDocumentUrl ||
+            proposalDocumentUrl.trim().length === 0
+        ) {
             return res.status(400).json({
                 success: false,
                 message: "Proposal document link is required"
@@ -108,7 +110,8 @@ const createSolution = async (req, res) => {
         if (existingSolution) {
             return res.status(409).json({
                 success: false,
-                message: "Your university has already submitted a solution for this challenge"
+                message:
+                    "Your university has already submitted a solution for this challenge"
             });
         }
 
@@ -132,7 +135,7 @@ const createSolution = async (req, res) => {
 
         // 7. Return result
 
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
             message: "Solution submitted successfully",
             solution
@@ -140,11 +143,13 @@ const createSolution = async (req, res) => {
 
     } catch (error) {
 
-        // Handle MongoDB duplicate index just in case
+        // Handle duplicate university + challenge submission
+
         if (error.code === 11000) {
             return res.status(409).json({
                 success: false,
-                message: "Your university has already submitted a solution for this challenge"
+                message:
+                    "Your university has already submitted a solution for this challenge"
             });
         }
 
@@ -153,11 +158,69 @@ const createSolution = async (req, res) => {
             error
         );
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: "Failed to submit solution"
         });
     }
 };
 
-export default createSolution;
+
+// ============================================
+// GET MY SOLUTIONS
+// ============================================
+
+const getMySolutions = async (req, res) => {
+    try {
+
+        // Find the university belonging to
+        // the currently authenticated Firebase user
+
+        const university = await University.findOne({
+            firebaseUid: req.user.uid,
+            isActive: true
+        });
+
+        if (!university) {
+            return res.status(403).json({
+                success: false,
+                message: "University profile not found"
+            });
+        }
+
+        // Fetch all solutions submitted by this university
+
+        const solutions = await Solution.find({
+            universityId: university._id
+        })
+            .select(
+                "challengeId title description proposedSolution technologies expectedImpact proposalDocumentUrl demoVideoUrl githubRepoUrl status createdAt updatedAt"
+            )
+            .sort({ createdAt: -1 })
+            .lean();
+
+        return res.status(200).json({
+            success: true,
+            count: solutions.length,
+            solutions
+        });
+
+    } catch (error) {
+
+        console.error(
+            "GET MY SOLUTIONS ERROR:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch submitted solutions"
+        });
+    }
+};
+
+
+export {
+    createSolution,
+    getMySolutions
+};

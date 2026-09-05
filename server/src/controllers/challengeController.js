@@ -27,7 +27,38 @@ const getOpenChallenges = async (req, res) => {
         });
     }
 };
+const getChallengeById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const challenge = await Challenge.findById(id).lean();
+
+        if (!challenge) {
+            return res.status(404).json({
+                success: false,
+                message: "Challenge not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            challenge
+        });
+
+    } catch (error) {
+        console.error(
+            "GET CHALLENGE ERROR:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch challenge"
+        });
+    }
+};
 
 export {
-    getOpenChallenges
+    getOpenChallenges,
+    getChallengeById
 };
