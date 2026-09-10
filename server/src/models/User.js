@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema(
                 "Citizen",
                 "University",
                 "Industry",
+                "GovernmentOfficer",
                 "Admin"
             ],
             required: true

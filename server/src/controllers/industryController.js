@@ -1,4 +1,5 @@
 import Industry from "../models/Industry.js";
+import User from "../models/User.js";
 import getRecommendedSolutions from "../services/industryMatchingService.js";
 
 const createIndustry = async (req, res) => {
@@ -66,7 +67,20 @@ const createIndustry = async (req, res) => {
             });
         }
 
-        // 3. Create Industry profile
+        // 3. Create User profile if it doesn't exist
+
+        const existingUser = await User.findOne({
+            firebaseUid: req.user.uid
+        });
+
+        if (!existingUser) {
+            await User.create({
+                firebaseUid: req.user.uid,
+                role: "Industry"
+            });
+        }
+
+        // 4. Create Industry profile
 
         const industry = await Industry.create({
             firebaseUid: req.user.uid,
@@ -107,6 +121,7 @@ const createIndustry = async (req, res) => {
     } catch (error) {
 
         // Handle duplicate firebaseUid
+
         if (error.code === 11000) {
             return res.status(409).json({
                 success: false,
@@ -222,6 +237,8 @@ const getIndustryById = async (req, res) => {
         });
     }
 };
+
+
 const getMyRecommendations = async (req, res) => {
     try {
 

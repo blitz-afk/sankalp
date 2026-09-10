@@ -1,6 +1,7 @@
 import Problem from "../models/Problem.js";
 import uploadToCloudinary from "../services/cloudinaryService.js";
 import createChallengeIfNeeded from "../services/challengeService.js";
+import Challenge from "../models/Challenge.js";
 
 const createProblem = async (req, res) => {
     try {
@@ -179,5 +180,81 @@ const createProblem = async (req, res) => {
         });
     }
 };
+const getProblemsByChallenge = async (req, res) => {
+    try {
+        const { challengeId } = req.params;
 
-export default createProblem;
+        const challenge = await Challenge.findById(challengeId).lean();
+
+        if (!challenge) {
+            return res.status(404).json({
+                success: false,
+                message: "Challenge not found"
+            });
+        }
+
+        // First try problems explicitly linked to this challenge
+        let problems = await Problem.find({
+            challengeId,
+            "aiAnalysis.isValid": true
+        })
+            .select(
+                "_id title description location aiAnalysis status createdAt"
+            )
+            .sort({ createdAt: -1 })
+            .lean();
+
+        // Existing problems created before challengeId was added
+        // may not be linked yet. Recover them using the challenge category.
+        if (problems.length === 0) {
+            problems = await Problem.find({
+                challengeId: null,
+                "aiAnalysis.isValid": true,
+                "aiAnalysis.category": challenge.category
+            })
+                .select(
+                    "_id title description location aiAnalysis status createdAt"
+                )
+                .sort({ createdAt: -1 })
+                .lean();
+
+            // Attach recovered problems to this challenge
+            if (problems.length > 0) {
+                await Problem.updateMany(
+                    {
+                        _id: {
+                            $in: problems.map((problem) => problem._id)
+                        }
+                    },
+                    {
+                        $set: {
+                            challengeId: challenge._id
+                        }
+                    }
+                );
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            count: problems.length,
+            problems
+        });
+
+    } catch (error) {
+        console.error(
+            "GET PROBLEMS BY CHALLENGE ERROR:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch challenge problems"
+        });
+    }
+};
+
+export {
+    createProblem,
+    getProblemsByChallenge
+};
