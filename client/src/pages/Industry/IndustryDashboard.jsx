@@ -22,6 +22,8 @@ export default function IndustryDashboard() {
     const [error, setError] = useState("");
 
     const [interestSolution, setInterestSolution] = useState(null);
+    const [viewSolution, setViewSolution] = useState(null);
+
     const [interestLoading, setInterestLoading] = useState(false);
     const [interestSuccess, setInterestSuccess] = useState("");
 
@@ -63,7 +65,6 @@ export default function IndustryDashboard() {
                 setRecommendations(
                     response.data?.recommendations || []
                 );
-
             } catch (error) {
                 console.error(
                     "Failed to fetch industry recommendations:",
@@ -279,6 +280,9 @@ export default function IndustryDashboard() {
                                 <SolutionCard
                                     key={recommendation.solutionId}
                                     recommendation={recommendation}
+                                    onViewSolution={
+                                        setViewSolution
+                                    }
                                     onShowInterest={
                                         openInterestModal
                                     }
@@ -305,6 +309,20 @@ export default function IndustryDashboard() {
                 />
             )}
 
+
+            {/* SOLUTION DETAILS MODAL */}
+
+            {viewSolution && (
+                <SolutionDetailsModal
+                    recommendation={viewSolution}
+                    onClose={() => setViewSolution(null)}
+                    onShowInterest={() => {
+                        setViewSolution(null);
+                        openInterestModal(viewSolution);
+                    }}
+                />
+            )}
+
         </div>
     );
 }
@@ -316,6 +334,7 @@ export default function IndustryDashboard() {
 
 function SolutionCard({
     recommendation,
+    onViewSolution,
     onShowInterest,
 }) {
     const score = recommendation.matchScore || 0;
@@ -435,13 +454,16 @@ function SolutionCard({
 
                 <div className="flex items-center gap-2">
 
-                    <Link
-                        to={`/industry/solutions/${recommendation.solutionId}`}
+                    <button
+                        type="button"
+                        onClick={() =>
+                            onViewSolution(recommendation)
+                        }
                         className="flex items-center gap-2 rounded-full border border-[#13243b]/10 px-4 py-2 text-xs font-medium transition hover:bg-[#13243b]/5"
                     >
                         View Solution
                         <ArrowRight size={14} />
-                    </Link>
+                    </button>
 
                     <button
                         type="button"
@@ -459,6 +481,220 @@ function SolutionCard({
             </div>
 
         </article>
+    );
+}
+
+
+/* =========================================
+   SOLUTION DETAILS MODAL
+========================================= */
+
+function SolutionDetailsModal({
+    recommendation,
+    onClose,
+    onShowInterest,
+}) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#13243b]/40 px-5 py-6 backdrop-blur-sm">
+
+            <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[28px] bg-white shadow-2xl">
+
+                {/* HEADER */}
+
+                <div className="flex items-start justify-between border-b border-[#13243b]/10 p-6">
+
+                    <div>
+
+                        <p className="text-xs font-medium uppercase tracking-wider text-[#148aa0]">
+                            Solution
+                        </p>
+
+                        <h2 className="mt-2 text-2xl font-semibold">
+                            {recommendation.title}
+                        </h2>
+
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-full p-2 transition hover:bg-[#13243b]/5"
+                    >
+                        <X size={20} />
+                    </button>
+
+                </div>
+
+
+                {/* CONTENT */}
+
+                <div className="p-6">
+
+                    {/* MATCH SCORE */}
+
+                    <div className="flex items-center justify-between rounded-2xl bg-[#faf9f6] p-4">
+
+                        <div>
+
+                            <p className="text-xs uppercase tracking-wider text-[#13243b]/40">
+                                Organization Match
+                            </p>
+
+                            <p className="mt-1 text-2xl font-semibold">
+                                {recommendation.matchScore || 0}%
+                            </p>
+
+                        </div>
+
+                        <div className="rounded-full bg-[#dff5f7] px-3 py-1.5 text-xs font-semibold text-[#148aa0]">
+                            Recommended
+                        </div>
+
+                    </div>
+
+
+                    {/* DESCRIPTION */}
+
+                    <div className="mt-6">
+
+                        <p className="text-xs font-medium uppercase tracking-wider text-[#13243b]/40">
+                            Description
+                        </p>
+
+                        <p className="mt-2 text-sm leading-relaxed text-[#13243b]/70">
+                            {recommendation.description}
+                        </p>
+
+                    </div>
+
+
+                    {/* TECHNOLOGIES */}
+
+                    {recommendation.technologies?.length > 0 && (
+                        <div className="mt-6">
+
+                            <p className="text-xs font-medium uppercase tracking-wider text-[#13243b]/40">
+                                Technologies
+                            </p>
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+
+                                {recommendation.technologies.map(
+                                    (technology) => (
+                                        <span
+                                            key={technology}
+                                            className="rounded-full border border-[#13243b]/10 bg-[#faf9f6] px-3 py-1.5 text-xs"
+                                        >
+                                            {technology}
+                                        </span>
+                                    )
+                                )}
+
+                            </div>
+
+                        </div>
+                    )}
+
+
+                    {/* REQUIRED DOMAINS */}
+
+                    {recommendation.requiredDomains?.length > 0 && (
+                        <div className="mt-6">
+
+                            <p className="text-xs font-medium uppercase tracking-wider text-[#13243b]/40">
+                                Required Domains
+                            </p>
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+
+                                {recommendation.requiredDomains.map(
+                                    (domain) => {
+
+                                        const matched =
+                                            recommendation.matchedRequiredDomains?.some(
+                                                (item) =>
+                                                    item.toLowerCase() ===
+                                                    domain.toLowerCase()
+                                            );
+
+                                        return (
+                                            <span
+                                                key={domain}
+                                                className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                                                    matched
+                                                        ? "bg-[#eef0ff] text-[#5262c9]"
+                                                        : "border border-[#13243b]/10 bg-[#faf9f6] text-[#13243b]/60"
+                                                }`}
+                                            >
+                                                {matched ? "✓ " : ""}
+                                                {domain}
+                                            </span>
+                                        );
+                                    }
+                                )}
+
+                            </div>
+
+                        </div>
+                    )}
+
+
+                    {/* MATCHED TECHNOLOGIES */}
+
+                    {recommendation.matchedTechnologies?.length > 0 && (
+                        <div className="mt-6">
+
+                            <p className="text-xs font-medium uppercase tracking-wider text-[#13243b]/40">
+                                Matching Technologies
+                            </p>
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+
+                                {recommendation.matchedTechnologies.map(
+                                    (technology) => (
+                                        <span
+                                            key={technology}
+                                            className="rounded-full bg-[#dff5f7] px-3 py-1.5 text-xs font-medium text-[#148aa0]"
+                                        >
+                                            ✓ {technology}
+                                        </span>
+                                    )
+                                )}
+
+                            </div>
+
+                        </div>
+                    )}
+
+
+                    {/* ACTIONS */}
+
+                    <div className="mt-8 flex justify-end gap-3 border-t border-[#13243b]/10 pt-5">
+
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="rounded-full border border-[#13243b]/10 px-5 py-2.5 text-sm font-medium transition hover:bg-[#13243b]/5"
+                        >
+                            Close
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={onShowInterest}
+                            className="flex items-center gap-2 rounded-full bg-[#13243b] px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+                        >
+                            Show Interest
+                            <ArrowRight size={15} />
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
     );
 }
 
@@ -832,11 +1068,13 @@ function Field({
 
                 <label className="text-sm font-medium">
                     {label}
+
                     {required && (
                         <span className="ml-1 text-[#148aa0]">
                             *
                         </span>
                     )}
+
                 </label>
 
                 {hint && (

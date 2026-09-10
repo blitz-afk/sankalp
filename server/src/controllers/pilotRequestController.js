@@ -9,6 +9,43 @@ import GovernmentBody from "../models/GovernmentBody.js";
 import Pilot from "../models/Pilot.js";
 
 
+const getMyUniversityPilotRequests = async (req, res) => {
+    try {
+        const university = await University.findOne({
+            firebaseUid: req.user.uid,
+            isActive: true
+        });
+
+        if (!university) {
+            return res.status(403).json({
+                success: false,
+                message: "University profile not found"
+            });
+        }
+
+        const requests = await PilotRequest.find({
+            universityId: university._id
+        })
+            .select("_id industryInterestId solutionId status title officerRemarks")
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            count: requests.length,
+            requests
+        });
+    } catch (error) {
+        console.error(
+            "GET UNIVERSITY PILOT REQUESTS ERROR:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch university pilot requests"
+        });
+    }
+};
 const createPilotRequest = async (req, res) => {
     try {
         const {
@@ -798,5 +835,6 @@ export {
     getMyPilotRequests,
     acceptPilotRequest,
     rejectPilotRequest,
-    convertPilotRequestToPilot
+    convertPilotRequestToPilot,
+    getMyUniversityPilotRequests
 };

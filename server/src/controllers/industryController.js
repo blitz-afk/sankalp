@@ -1,7 +1,7 @@
 import Industry from "../models/Industry.js";
 import User from "../models/User.js";
 import getRecommendedSolutions from "../services/industryMatchingService.js";
-import User from "../models/User.js";
+
 
 const createIndustry = async (req, res) => {
     try {

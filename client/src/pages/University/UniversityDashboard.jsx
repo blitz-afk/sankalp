@@ -21,6 +21,7 @@ export default function UniversityDashboard() {
     const [activeSection, setActiveSection] = useState(
         "challenges"
     );
+    const [pilotRequests, setPilotRequests] = useState([]);
 
     const [challenges, setChallenges] = useState([]);
     const [solutions, setSolutions] = useState([]);
@@ -76,13 +77,12 @@ export default function UniversityDashboard() {
                 challengesResponse,
                 solutionsResponse,
                 interestsResponse,
+                pilotRequestsResponse,
             ] = await Promise.all([
                 api.get("/challenges", config),
                 api.get("/solutions/my", config),
-                api.get(
-                    "/industry-interests/received",
-                    config
-                ),
+                api.get("/industry-interests/received", config),
+                api.get("/pilot-requests/my/university", config),
             ]);
 
             const fetchedChallenges =
@@ -97,6 +97,7 @@ export default function UniversityDashboard() {
             setChallenges(fetchedChallenges);
             setSolutions(fetchedSolutions);
             setInterests(fetchedInterests);
+            setPilotRequests(pilotRequestsResponse.data?.requests || []);
 
             const submittedIds = new Set(
                 fetchedSolutions.map((solution) =>
@@ -164,14 +165,14 @@ export default function UniversityDashboard() {
             setInterests((current) =>
                 current.map((interest) =>
                     String(interest._id) ===
-                    String(interestId)
+                        String(interestId)
                         ? {
-                              ...interest,
-                              status:
-                                  action === "accept"
-                                      ? "Accepted"
-                                      : "Rejected",
-                          }
+                            ...interest,
+                            status:
+                                action === "accept"
+                                    ? "Accepted"
+                                    : "Rejected",
+                        }
                         : interest
                 )
             );
@@ -276,11 +277,10 @@ export default function UniversityDashboard() {
                         onClick={() =>
                             setActiveSection("challenges")
                         }
-                        className={`rounded-[20px] border bg-white p-5 text-left transition ${
-                            activeSection === "challenges"
-                                ? "border-[#148aa0] shadow-[0_8px_30px_rgba(20,138,160,0.10)]"
-                                : "border-[#13243b]/10 hover:border-[#13243b]/20"
-                        }`}
+                        className={`rounded-[20px] border bg-white p-5 text-left transition ${activeSection === "challenges"
+                            ? "border-[#148aa0] shadow-[0_8px_30px_rgba(20,138,160,0.10)]"
+                            : "border-[#13243b]/10 hover:border-[#13243b]/20"
+                            }`}
                     >
                         <div className="flex items-center gap-3">
 
@@ -309,11 +309,10 @@ export default function UniversityDashboard() {
                         onClick={() =>
                             setActiveSection("solutions")
                         }
-                        className={`rounded-[20px] border bg-white p-5 text-left transition ${
-                            activeSection === "solutions"
-                                ? "border-[#5262c9] shadow-[0_8px_30px_rgba(82,98,201,0.10)]"
-                                : "border-[#13243b]/10 hover:border-[#13243b]/20"
-                        }`}
+                        className={`rounded-[20px] border bg-white p-5 text-left transition ${activeSection === "solutions"
+                            ? "border-[#5262c9] shadow-[0_8px_30px_rgba(82,98,201,0.10)]"
+                            : "border-[#13243b]/10 hover:border-[#13243b]/20"
+                            }`}
                     >
                         <div className="flex items-center gap-3">
 
@@ -342,11 +341,10 @@ export default function UniversityDashboard() {
                         onClick={() =>
                             setActiveSection("interests")
                         }
-                        className={`rounded-[20px] border bg-white p-5 text-left transition ${
-                            activeSection === "interests"
-                                ? "border-[#148aa0] shadow-[0_8px_30px_rgba(20,138,160,0.10)]"
-                                : "border-[#13243b]/10 hover:border-[#13243b]/20"
-                        }`}
+                        className={`rounded-[20px] border bg-white p-5 text-left transition ${activeSection === "interests"
+                            ? "border-[#148aa0] shadow-[0_8px_30px_rgba(20,138,160,0.10)]"
+                            : "border-[#13243b]/10 hover:border-[#13243b]/20"
+                            }`}
                     >
                         <div className="flex items-center gap-3">
 
@@ -582,21 +580,16 @@ export default function UniversityDashboard() {
                                         {interests.map(
                                             (interest) => (
                                                 <InterestCard
-                                                    key={
-                                                        interest._id
-                                                    }
-                                                    interest={
-                                                        interest
-                                                    }
-                                                    actionLoading={
-                                                        interestActionLoading
-                                                    }
-                                                    onAction={
-                                                        handleInterestAction
-                                                    }
-                                                    onApplyPilot={
-                                                        setPilotInterest
-                                                    }
+                                                    key={interest._id}
+                                                    interest={interest}
+                                                    actionLoading={interestActionLoading}
+                                                    onAction={handleInterestAction}
+                                                    onApplyPilot={setPilotInterest}
+                                                    pilotRequest={pilotRequests.find(
+                                                        (request) =>
+                                                            String(request.industryInterestId) ===
+                                                            String(interest._id)
+                                                    )}
                                                 />
                                             )
                                         )}
@@ -645,11 +638,10 @@ function SectionTab({
         <button
             type="button"
             onClick={onClick}
-            className={`flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition ${
-                active
-                    ? "bg-[#13243b] text-white"
-                    : "text-[#13243b]/55 hover:bg-[#13243b]/5 hover:text-[#13243b]"
-            }`}
+            className={`flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition ${active
+                ? "bg-[#13243b] text-white"
+                : "text-[#13243b]/55 hover:bg-[#13243b]/5 hover:text-[#13243b]"
+                }`}
         >
             {icon}
             {children}
@@ -750,21 +742,19 @@ function ChallengeCard({
 }) {
     return (
         <article
-            className={`rounded-[24px] border p-6 shadow-[0_10px_35px_rgba(19,36,59,0.05)] ${
-                submitted
-                    ? "border-[#9bd9df] bg-[#f3fbfc]"
-                    : "border-[#13243b]/10 bg-white"
-            }`}
+            className={`rounded-[24px] border p-6 shadow-[0_10px_35px_rgba(19,36,59,0.05)] ${submitted
+                ? "border-[#9bd9df] bg-[#f3fbfc]"
+                : "border-[#13243b]/10 bg-white"
+                }`}
         >
 
             <div className="flex items-start justify-between gap-4">
 
                 <div
-                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
-                        submitted
-                            ? "bg-[#dff5f7] text-[#148aa0]"
-                            : "bg-[#e7f8fa] text-[#148aa0]"
-                    }`}
+                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${submitted
+                        ? "bg-[#dff5f7] text-[#148aa0]"
+                        : "bg-[#e7f8fa] text-[#148aa0]"
+                        }`}
                 >
                     {submitted ? (
                         <CheckCircle2 size={21} />
@@ -889,13 +879,12 @@ function SolutionCard({ solution }) {
                 </div>
 
                 <span
-                    className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                        solution.status === "Accepted"
-                            ? "bg-[#dff5f7] text-[#148aa0]"
-                            : solution.status === "Rejected"
-                                ? "bg-red-50 text-red-600"
-                                : "bg-[#fff4d8] text-[#a56a00]"
-                    }`}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium ${solution.status === "Accepted"
+                        ? "bg-[#dff5f7] text-[#148aa0]"
+                        : solution.status === "Rejected"
+                            ? "bg-red-50 text-red-600"
+                            : "bg-[#fff4d8] text-[#a56a00]"
+                        }`}
                 >
                     {solution.status}
                 </span>
@@ -971,6 +960,7 @@ function InterestCard({
     actionLoading,
     onAction,
     onApplyPilot,
+    pilotRequest,
 }) {
     const industry = interest.industryId;
     const solution = interest.solutionId;
@@ -998,13 +988,12 @@ function InterestCard({
 
 
                 <span
-                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${
-                        interest.status === "Accepted"
-                            ? "bg-[#dff5f7] text-[#148aa0]"
-                            : interest.status === "Rejected"
-                                ? "bg-red-50 text-red-600"
-                                : "bg-[#fff4d8] text-[#a56a00]"
-                    }`}
+                    className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium ${interest.status === "Accepted"
+                        ? "bg-[#dff5f7] text-[#148aa0]"
+                        : interest.status === "Rejected"
+                            ? "bg-red-50 text-red-600"
+                            : "bg-[#fff4d8] text-[#a56a00]"
+                        }`}
                 >
                     {interest.status}
                 </span>
@@ -1149,7 +1138,7 @@ function InterestCard({
                         className="rounded-full border border-red-200 px-5 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {actionLoading ===
-                        `${interest._id}-reject`
+                            `${interest._id}-reject`
                             ? "Rejecting..."
                             : "Reject"}
                     </button>
@@ -1168,7 +1157,7 @@ function InterestCard({
                     >
 
                         {actionLoading ===
-                        `${interest._id}-accept` ? (
+                            `${interest._id}-accept` ? (
                             <>
                                 <Loader2
                                     size={16}
@@ -1189,26 +1178,84 @@ function InterestCard({
             )}
 
 
-            {/* ACCEPTED */}
+            {/* ACCEPTED / PILOT STATUS */}
 
             {interest.status === "Accepted" && (
                 <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[#13243b]/10 pt-5">
 
-                    <div className="flex items-center gap-2 text-sm font-medium text-[#148aa0]">
-                        <CheckCircle2 size={17} />
-                        Collaboration accepted
-                    </div>
+                    {pilotRequest?.status === "Pending" ? (
+                        <>
+                            <div className="flex items-center gap-2 text-sm font-medium text-[#a56a00]">
+                                <Loader2
+                                    size={17}
+                                    className="animate-spin"
+                                />
+                                Pilot application pending
+                            </div>
 
-                    <button
-                        type="button"
-                        onClick={() =>
-                            onApplyPilot(interest)
-                        }
-                        className="flex items-center gap-2 rounded-full bg-[#13243b] px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-                    >
-                        Apply for Pilot
-                        <ArrowRight size={14} />
-                    </button>
+                            <span className="rounded-full bg-[#fff4d8] px-4 py-2 text-xs font-medium text-[#a56a00]">
+                                Awaiting Government Review
+                            </span>
+                        </>
+                    ) : pilotRequest?.status === "Accepted" ? (
+                        <>
+                            <div className="flex items-center gap-2 text-sm font-medium text-[#148aa0]">
+                                <CheckCircle2 size={17} />
+                                Pilot approved
+                            </div>
+
+                            <span className="rounded-full bg-[#dff5f7] px-4 py-2 text-xs font-medium text-[#148aa0]">
+                                Accepted
+                            </span>
+                        </>
+                    ) : pilotRequest?.status === "Converted" ? (
+                        <>
+                            <div className="flex items-center gap-2 text-sm font-medium text-[#148aa0]">
+                                <CheckCircle2 size={17} />
+                                Pilot in progress
+                            </div>
+
+                            <span className="rounded-full bg-[#dff5f7] px-4 py-2 text-xs font-medium text-[#148aa0]">
+                                In Progress
+                            </span>
+                        </>
+                    ) : pilotRequest?.status === "Rejected" ? (
+                        <>
+                            <div className="flex items-center gap-2 text-sm font-medium text-red-600">
+                                <AlertCircle size={17} />
+                                Pilot request rejected
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    onApplyPilot(interest)
+                                }
+                                className="flex items-center gap-2 rounded-full bg-[#13243b] px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+                            >
+                                Apply Again
+                                <ArrowRight size={14} />
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <div className="flex items-center gap-2 text-sm font-medium text-[#148aa0]">
+                                <CheckCircle2 size={17} />
+                                Collaboration accepted
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    onApplyPilot(interest)
+                                }
+                                className="flex items-center gap-2 rounded-full bg-[#13243b] px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+                            >
+                                Apply for Pilot
+                                <ArrowRight size={14} />
+                            </button>
+                        </>
+                    )}
 
                 </div>
             )}

@@ -2,6 +2,8 @@ import Problem from "../models/Problem.js";
 import uploadToCloudinary from "../services/cloudinaryService.js";
 import createChallengeIfNeeded from "../services/challengeService.js";
 import Challenge from "../models/Challenge.js";
+import GovernmentBody from "../models/GovernmentBody.js";
+import GovernmentOfficer from "../models/GovernmentOfficer.js";
 
 const createProblem = async (req, res) => {
     try {
@@ -106,11 +108,47 @@ const createProblem = async (req, res) => {
         const media = [result.secure_url];
 
         // -----------------------------
+        // FIND GOVERNMENT BODY
+        // -----------------------------
+
+        const governmentBody = await GovernmentBody.findOne({
+            isActive: true
+        });
+
+        if (!governmentBody) {
+            return res.status(500).json({
+                success: false,
+                message: "No active government body found"
+            });
+        }
+
+        // -----------------------------
+        // FIND GOVERNMENT OFFICER
+        // -----------------------------
+
+        const governmentOfficer =
+            await GovernmentOfficer.findOne({
+                governmentBodyId: governmentBody._id,
+                isActive: true
+            });
+
+        if (!governmentOfficer) {
+            return res.status(500).json({
+                success: false,
+                message: "No active government officer found"
+            });
+        }
+
+        // -----------------------------
         // CREATE PROBLEM
         // -----------------------------
 
         const problem = await Problem.create({
             submittedBy: req.user.uid,
+
+            // Government assignment
+            governmentBodyId: governmentBody._id,
+            governmentOfficerId: governmentOfficer._id,
 
             // Gemini-generated title
             title: aiAnalysis.title,
@@ -180,11 +218,14 @@ const createProblem = async (req, res) => {
         });
     }
 };
+
 const getProblemsByChallenge = async (req, res) => {
     try {
         const { challengeId } = req.params;
 
-        const challenge = await Challenge.findById(challengeId).lean();
+        const challenge = await Challenge.findById(
+            challengeId
+        ).lean();
 
         if (!challenge) {
             return res.status(404).json({
@@ -223,7 +264,9 @@ const getProblemsByChallenge = async (req, res) => {
                 await Problem.updateMany(
                     {
                         _id: {
-                            $in: problems.map((problem) => problem._id)
+                            $in: problems.map(
+                                (problem) => problem._id
+                            )
                         }
                     },
                     {

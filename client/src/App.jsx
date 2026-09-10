@@ -21,6 +21,7 @@ import UniversitySubmission from "./pages/University/UniversitySubmission";
 import IndustryDashboard from "./pages/Industry/IndustryDashboard";
 
 import GovernmentOfficerDashboard from "./pages/Government/GovernmentOfficerDashboard";
+import GovernmentBodyDashboard from "./pages/Government/GovernmentBodyDashboard";
 
 export default function App() {
   return (
@@ -127,6 +128,10 @@ export default function App() {
       <Route
         path="/government/officer"
         element={<GovernmentOfficerDashboard />}
+      />
+      <Route
+        path="/government/body"
+        element={<GovernmentBodyDashboard />}
       />
 
     </Routes>
