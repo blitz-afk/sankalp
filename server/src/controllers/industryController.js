@@ -1,6 +1,7 @@
 import Industry from "../models/Industry.js";
 import User from "../models/User.js";
 import getRecommendedSolutions from "../services/industryMatchingService.js";
+import User from "../models/User.js";
 
 const createIndustry = async (req, res) => {
     try {
@@ -53,7 +54,7 @@ const createIndustry = async (req, res) => {
             });
         }
 
-        // 2. Check whether this Firebase account
+        // 2. Check whether Firebase account
         // already has an Industry profile
 
         const existingIndustry = await Industry.findOne({
@@ -67,7 +68,8 @@ const createIndustry = async (req, res) => {
             });
         }
 
-        // 3. Create User profile if it doesn't exist
+        // 3. Create User profile
+        // This is required by /api/auth/me
 
         const existingUser = await User.findOne({
             firebaseUid: req.user.uid
