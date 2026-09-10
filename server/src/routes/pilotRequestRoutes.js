@@ -2,7 +2,7 @@ import express from "express";
 
 import firebaseAuth from "../middleware/firebaseAuth.js";
 
-import { createPilotRequest, getMyPilotRequests, acceptPilotRequest, rejectPilotRequest, convertPilotRequestToPilot } from "../controllers/pilotRequestController.js";
+import { createPilotRequest, getMyPilotRequests, acceptPilotRequest, rejectPilotRequest, convertPilotRequestToPilot,getMyUniversityPilotRequests } from "../controllers/pilotRequestController.js";
 
 const router = express.Router();
 
@@ -29,5 +29,10 @@ router.patch(
     rejectPilotRequest
 );
 router.patch("/:pilotRequestId/convert", firebaseAuth, convertPilotRequestToPilot);
+router.get(
+    "/my/university",
+    firebaseAuth,
+    getMyUniversityPilotRequests
+);
 
 export default router;

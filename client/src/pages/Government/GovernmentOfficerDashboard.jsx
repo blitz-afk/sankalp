@@ -24,6 +24,9 @@ export default function GovernmentOfficerDashboard() {
     const [actionLoading, setActionLoading] = useState(null);
     const [error, setError] = useState("");
     const [selectedRequest, setSelectedRequest] = useState(null);
+    const [pilots, setPilots] = useState([]);
+    const [selectedPilot, setSelectedPilot] = useState(null);
+    const [results, setResults] = useState("");
 
     const getToken = async () => {
         const user = auth.currentUser;
@@ -65,9 +68,30 @@ export default function GovernmentOfficerDashboard() {
             setLoading(false);
         }
     };
+    const fetchPilots = async () => {
+        try {
+            const token = await getToken();
+
+            const response = await api.get("/pilots/my", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            setPilots(response.data.pilots || []);
+        } catch (err) {
+            console.error("FETCH PILOTS ERROR:", err);
+
+            setError(
+                err.response?.data?.message ||
+                "Failed to load pilots."
+            );
+        }
+    };
 
     useEffect(() => {
         fetchRequests();
+        fetchPilots();
     }, []);
 
     const handleAction = async (requestId, action) => {
@@ -89,6 +113,7 @@ export default function GovernmentOfficerDashboard() {
 
             setSelectedRequest(null);
             await fetchRequests();
+            await fetchPilots();
         } catch (err) {
             console.error(`PILOT REQUEST ${action.toUpperCase()} ERROR:`, err);
 
@@ -120,6 +145,7 @@ export default function GovernmentOfficerDashboard() {
 
             setSelectedRequest(null);
             await fetchRequests();
+            await fetchPilots();
         } catch (err) {
             console.error("CONVERT PILOT REQUEST ERROR:", err);
 
@@ -131,6 +157,76 @@ export default function GovernmentOfficerDashboard() {
             setActionLoading(null);
         }
     };
+    const handleStartPilot = async (pilotId) => {
+        try {
+            setActionLoading(`${pilotId}-start`);
+            setError("");
+
+            const token = await getToken();
+
+            await api.patch(
+                `/pilots/${pilotId}/start`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            setSelectedPilot(null);
+            await fetchPilots();
+        } catch (err) {
+            console.error("START PILOT ERROR:", err);
+
+            setError(
+                err.response?.data?.message ||
+                "Failed to start pilot."
+            );
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleCompletePilot = async (pilotId) => {
+        if (!results.trim() || results.trim().length < 20) {
+            setError("Pilot results must be at least 20 characters.");
+            return;
+        }
+
+        try {
+            setActionLoading(`${pilotId}-complete`);
+            setError("");
+
+            const token = await getToken();
+
+            await api.patch(
+                `/pilots/${pilotId}/complete`,
+                {
+                    results: results.trim(),
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            setResults("");
+            setSelectedPilot(null);
+            await fetchPilots();
+        } catch (err) {
+            console.error("COMPLETE PILOT ERROR:", err);
+
+            setError(
+                err.response?.data?.message ||
+                "Failed to complete pilot."
+            );
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     const handleSignOut = async () => {
         try {
             await signOut(auth);
@@ -195,24 +291,33 @@ export default function GovernmentOfficerDashboard() {
                             </div>
                         </div>
 
-                        <button
-                            onClick={fetchRequests}
-                            className="flex items-center gap-2 px-4 py-2.5 border border-black/10 rounded-lg bg-white hover:bg-gray-50 transition"
-                        >
-                            <RefreshCw className="w-4 h-4" />
-                            Refresh
-                        </button>
+                        <div className="flex items-center gap-3">
+
+                            {/* Refresh */}
+                            <button
+                                onClick={() => {
+                                    fetchRequests();
+                                    fetchPilots();
+                                }}
+                                className="flex items-center gap-2 px-4 py-2.5 border border-black/10 rounded-lg bg-white hover:bg-gray-50 transition"
+                            >
+                                <RefreshCw className="w-4 h-4" />
+                                Refresh
+                            </button>
+
+                            {/* Sign Out */}
+                            <button
+                                onClick={handleSignOut}
+                                className="flex items-center gap-2 px-4 py-2.5 border border-black/10 rounded-lg bg-white hover:bg-gray-50 transition"
+                            >
+                                Sign Out
+                            </button>
+
+                        </div>
 
                     </div>
 
                 </div>
-                <button
-                    onClick={fetchRequests}
-                    className="flex items-center gap-2 px-4 py-2.5 border border-black/10 rounded-lg bg-white hover:bg-gray-50 transition"
-                >
-                    <RefreshCw className="w-4 h-4" />
-                    Refresh
-                </button>
             </header>
 
             {/* MAIN */}
@@ -558,9 +663,194 @@ export default function GovernmentOfficerDashboard() {
                     </div>
                 )}
 
+                {/* ACTIVE PILOTS */}
+
+                <div className="mt-12">
+                    <div className="mb-6">
+                        <p className="text-xs font-mono uppercase tracking-widest text-emerald-600 mb-2">
+                            Pilot Execution
+                        </p>
+
+                        <h2 className="text-3xl font-bold tracking-tight">
+                            Active Pilots
+                        </h2>
+
+                        <p className="text-gray-600 mt-2">
+                            Start approved pilots and submit their results when implementation is complete.
+                        </p>
+                    </div>
+
+                    {pilots.length === 0 ? (
+                        <div className="bg-white border border-black/10 rounded-2xl p-10 text-center">
+                            <Rocket className="w-10 h-10 mx-auto text-gray-300 mb-4" />
+
+                            <h3 className="text-lg font-semibold">
+                                No pilots yet
+                            </h3>
+
+                            <p className="text-gray-500 text-sm mt-2">
+                                Converted pilot requests will appear here.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-5">
+                            {pilots.map((pilot) => (
+                                <div
+                                    key={pilot._id}
+                                    className="bg-white border border-black/10 rounded-2xl overflow-hidden"
+                                >
+                                    <div className="p-6">
+                                        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                                            <div className="min-w-0">
+                                                <div className="flex flex-wrap items-center gap-3 mb-3">
+                                                    <span
+                                                        className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusClass(
+                                                            pilot.status
+                                                        )}`}
+                                                    >
+                                                        {pilot.status}
+                                                    </span>
+
+                                                    <span className="text-xs text-gray-400 font-mono">
+                                                        {pilot._id}
+                                                    </span>
+                                                </div>
+
+                                                <h3 className="text-xl font-bold break-words">
+                                                    {pilot.title}
+                                                </h3>
+
+                                                <p className="text-gray-600 mt-2 max-w-3xl break-words">
+                                                    {pilot.objective}
+                                                </p>
+                                            </div>
+
+                                            <div className="flex gap-2 shrink-0">
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setSelectedPilot(pilot)
+                                                    }
+                                                    className="px-4 py-2.5 rounded-lg border border-black/10 hover:bg-gray-50 transition font-medium"
+                                                >
+                                                    View Details
+                                                </button>
+
+                                                {pilot.status === "Planned" && (
+                                                    <button
+                                                        type="button"
+                                                        disabled={
+                                                            actionLoading !== null
+                                                        }
+                                                        onClick={() =>
+                                                            handleStartPilot(
+                                                                pilot._id
+                                                            )
+                                                        }
+                                                        className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#171914] text-white hover:opacity-90 transition disabled:opacity-50"
+                                                    >
+                                                        <Rocket className="w-4 h-4" />
+
+                                                        {actionLoading ===
+                                                            `${pilot._id}-start`
+                                                            ? "Starting..."
+                                                            : "Start Pilot"}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="border border-black/10 rounded-xl p-4">
+                                                <p className="text-xs text-gray-500 uppercase tracking-wide font-mono">
+                                                    University
+                                                </p>
+
+                                                <p className="font-semibold mt-2 break-words">
+                                                    {pilot.universityId?.name ||
+                                                        pilot.universityId
+                                                            ?.universityName ||
+                                                        "University"}
+                                                </p>
+                                            </div>
+
+                                            <div className="border border-black/10 rounded-xl p-4">
+                                                <p className="text-xs text-gray-500 uppercase tracking-wide font-mono">
+                                                    Industry
+                                                </p>
+
+                                                <p className="font-semibold mt-2 break-words">
+                                                    {pilot.industryId?.name ||
+                                                        pilot.industryId
+                                                            ?.companyName ||
+                                                        "Industry Organization"}
+                                                </p>
+                                            </div>
+
+                                            <div className="border border-black/10 rounded-xl p-4">
+                                                <p className="text-xs text-gray-500 uppercase tracking-wide font-mono">
+                                                    Location
+                                                </p>
+
+                                                <p className="font-semibold mt-2 break-words">
+                                                    {pilot.location?.city ||
+                                                        "Location not specified"}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {pilot.status === "In Progress" && (
+                                            <div className="mt-6 border-t border-black/10 pt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                                <div>
+                                                    <p className="font-semibold text-blue-900">
+                                                        Pilot is in progress
+                                                    </p>
+
+                                                    <p className="text-sm text-blue-700 mt-1">
+                                                        Submit the implementation results when the pilot is complete.
+                                                    </p>
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setResults("");
+                                                        setSelectedPilot(pilot);
+                                                    }}
+                                                    className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+                                                >
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                    Complete Pilot
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        {pilot.status === "Completed" && (
+                                            <div className="mt-6 border-t border-black/10 pt-5">
+                                                <div className="flex items-center gap-2 text-emerald-700 font-semibold">
+                                                    <CheckCircle2 className="w-5 h-5" />
+                                                    Pilot completed
+                                                </div>
+
+                                                {pilot.results && (
+                                                    <p className="mt-3 text-sm text-gray-600 whitespace-pre-wrap break-words">
+                                                        {pilot.results}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
             </main>
 
             {/* DETAILS MODAL */}
+
+
             {selectedRequest && (
                 <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
 
@@ -858,6 +1148,183 @@ export default function GovernmentOfficerDashboard() {
                                 </div>
                             )}
 
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* PILOT DETAILS / COMPLETE MODAL */}
+
+            {selectedPilot && (
+                <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+                    <div className="bg-[#f8f8f5] w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl">
+                        <div className="sticky top-0 z-10 bg-[#f8f8f5] border-b border-black/10 px-6 py-5 flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                                <p className="text-xs font-mono uppercase tracking-widest text-emerald-600">
+                                    Pilot
+                                </p>
+
+                                <h2 className="text-2xl font-bold mt-1 break-words">
+                                    {selectedPilot.title}
+                                </h2>
+
+                                <span
+                                    className={`inline-block mt-3 px-3 py-1 rounded-full text-xs font-medium border ${getStatusClass(
+                                        selectedPilot.status
+                                    )}`}
+                                >
+                                    {selectedPilot.status}
+                                </span>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSelectedPilot(null);
+                                    setResults("");
+                                }}
+                                className="w-9 h-9 rounded-lg border border-black/10 hover:bg-white flex items-center justify-center shrink-0"
+                            >
+                                <XCircle className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            <section>
+                                <p className="text-xs font-mono uppercase tracking-widest text-gray-500 mb-2">
+                                    Objective
+                                </p>
+
+                                <div className="bg-white border border-black/10 rounded-xl p-4 whitespace-pre-wrap break-words">
+                                    {selectedPilot.objective}
+                                </div>
+                            </section>
+
+                            <section>
+                                <p className="text-xs font-mono uppercase tracking-widest text-gray-500 mb-2">
+                                    Implementation Plan
+                                </p>
+
+                                <div className="bg-white border border-black/10 rounded-xl p-4 whitespace-pre-wrap break-words">
+                                    {selectedPilot.implementationPlan}
+                                </div>
+                            </section>
+
+                            <section>
+                                <p className="text-xs font-mono uppercase tracking-widest text-gray-500 mb-2">
+                                    Success Criteria
+                                </p>
+
+                                <div className="bg-white border border-black/10 rounded-xl p-4">
+                                    <ul className="space-y-2">
+                                        {(selectedPilot.successCriteria || []).map(
+                                            (criterion, index) => (
+                                                <li
+                                                    key={index}
+                                                    className="flex gap-3 text-sm"
+                                                >
+                                                    <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600 shrink-0" />
+
+                                                    <span className="break-words">
+                                                        {criterion}
+                                                    </span>
+                                                </li>
+                                            )
+                                        )}
+                                    </ul>
+                                </div>
+                            </section>
+
+                            <section>
+                                <p className="text-xs font-mono uppercase tracking-widest text-gray-500 mb-2">
+                                    Location
+                                </p>
+
+                                <div className="bg-white border border-black/10 rounded-xl p-4">
+                                    <div className="flex items-center gap-3">
+                                        <MapPin className="w-5 h-5 text-gray-500" />
+
+                                        <div>
+                                            <p className="font-semibold">
+                                                {selectedPilot.location?.city ||
+                                                    "Location not specified"}
+
+                                                {selectedPilot.location?.state &&
+                                                    `, ${selectedPilot.location.state}`}
+                                            </p>
+
+                                            {selectedPilot.location?.country && (
+                                                <p className="text-sm text-gray-500">
+                                                    {selectedPilot.location.country}
+                                                </p>
+                                            )}
+
+                                            {selectedPilot.location?.details && (
+                                                <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">
+                                                    {selectedPilot.location.details}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {selectedPilot.status === "In Progress" && (
+                                <section>
+                                    <p className="text-xs font-mono uppercase tracking-widest text-gray-500 mb-2">
+                                        Pilot Results
+                                    </p>
+
+                                    <textarea
+                                        value={results}
+                                        onChange={(e) =>
+                                            setResults(e.target.value)
+                                        }
+                                        rows={6}
+                                        placeholder="Describe what happened during the pilot, implementation results, outcomes, and observations..."
+                                        className="w-full bg-white border border-black/10 rounded-xl p-4 outline-none focus:border-blue-400 resize-none"
+                                    />
+
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Minimum 20 characters.
+                                    </p>
+                                </section>
+                            )}
+
+                            {selectedPilot.status === "Completed" &&
+                                selectedPilot.results && (
+                                    <section>
+                                        <p className="text-xs font-mono uppercase tracking-widest text-gray-500 mb-2">
+                                            Results
+                                        </p>
+
+                                        <div className="bg-white border border-black/10 rounded-xl p-4 whitespace-pre-wrap break-words">
+                                            {selectedPilot.results}
+                                        </div>
+                                    </section>
+                                )}
+
+                            {selectedPilot.status === "In Progress" && (
+                                <div className="border-t border-black/10 pt-5 flex justify-end">
+                                    <button
+                                        type="button"
+                                        disabled={actionLoading !== null}
+                                        onClick={() =>
+                                            handleCompletePilot(
+                                                selectedPilot._id
+                                            )
+                                        }
+                                        className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                                    >
+                                        <CheckCircle2 className="w-4 h-4" />
+
+                                        {actionLoading ===
+                                            `${selectedPilot._id}-complete`
+                                            ? "Completing..."
+                                            : "Mark Pilot Completed"}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
