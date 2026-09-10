@@ -321,6 +321,21 @@ The Vite development server will run on `http://localhost:5173`.
 
 ---
 
+## Demo Test Credentials
+
+Use the following pre-configured credentials to log in and test role-specific portals across the platform:
+
+| Role Persona | Email Address | Password | Workspace Portal |
+|---|---|---|---|
+| 🌆 **Citizen** | `citizen@sankalp.demo` | `Sankalp@12345` | `/citizen` (Problem Portal & Reports) |
+| 🎓 **University** | `university@sankalp.demo` | `Sankalp@12345` | `/university` (R&D Workspace & Solutions) |
+| 🏢 **Industry / CSR** | `industry@sankalp.demo` | `Sankalp@12345` | `/industry` (Sponsorship & Incubation) |
+| 👮 **Government Officer** | `officer@sankalp.demo` | `Sankalp@12345` | `/government/officer` (Field Verifications) |
+| 🏛️ **Government Body** | `body@sankalp.demo` | `Sankalp@12345` | `/government/body` (Department Permits & Oversight) |
+
+---
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
