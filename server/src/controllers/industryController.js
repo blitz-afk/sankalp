@@ -1,4 +1,5 @@
 import Industry from "../models/Industry.js";
+import User from "../models/User.js";
 import getRecommendedSolutions from "../services/industryMatchingService.js";
 import User from "../models/User.js";
 
@@ -122,6 +123,7 @@ const createIndustry = async (req, res) => {
     } catch (error) {
 
         // Handle duplicate firebaseUid
+
         if (error.code === 11000) {
             return res.status(409).json({
                 success: false,
@@ -237,6 +239,8 @@ const getIndustryById = async (req, res) => {
         });
     }
 };
+
+
 const getMyRecommendations = async (req, res) => {
     try {
 

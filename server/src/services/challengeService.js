@@ -16,9 +16,10 @@ const createChallengeIfNeeded = async (category) => {
 
     const problems = await Problem.find({
         "aiAnalysis.isValid": true,
-        "aiAnalysis.category": category
+        "aiAnalysis.category": category,
+        challengeId: null
     }).select(
-        "title description location aiAnalysis.severity aiAnalysis.summary"
+        "_id title description location aiAnalysis.severity aiAnalysis.summary"
     );
 
     if (problems.length === 0) {
@@ -39,6 +40,19 @@ const createChallengeIfNeeded = async (category) => {
         expectedOutcome: challengeData.expectedOutcome,
         reportCount: problems.length
     });
+
+    await Problem.updateMany(
+        {
+            _id: {
+                $in: problems.map((problem) => problem._id)
+            }
+        },
+        {
+            $set: {
+                challengeId: challenge._id
+            }
+        }
+    );
 
     return challenge;
 };

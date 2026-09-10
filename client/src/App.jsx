@@ -20,6 +20,8 @@ import UniversitySubmission from "./pages/University/UniversitySubmission";
 
 import IndustryDashboard from "./pages/Industry/IndustryDashboard";
 
+import GovernmentOfficerDashboard from "./pages/Government/GovernmentOfficerDashboard";
+
 export default function App() {
   return (
     <Routes>
@@ -122,7 +124,13 @@ export default function App() {
         path="*"
         element={<Navigate to="/" replace />}
       />
+      <Route
+        path="/government/officer"
+        element={<GovernmentOfficerDashboard />}
+      />
 
     </Routes>
+
+
   );
 }
